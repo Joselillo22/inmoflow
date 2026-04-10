@@ -1,0 +1,10 @@
+[2026-04-10 08:53:39] INICIO verificación: inmoflow_2026-04-10_08-53.dump
+[2026-04-10 08:53:41]   OK: usuarios (prod=3, backup=3)
+[2026-04-10 08:53:42]   OK: leads (prod=10, backup=10)
+[2026-04-10 08:53:42]   OK: inmuebles (prod=5, backup=5)
+[2026-04-10 08:53:42]   OK: operaciones (prod=0, backup=0)
+[2026-04-10 08:53:42]   OK: comerciales (prod=2, backup=2)
+[2026-04-10 08:53:43]   OK: propietarios (prod=2, backup=2)
+[2026-04-10 08:53:43]   OK: visitas (prod=3, backup=3)
+[2026-04-10 08:53:43]   OK: tareas (prod=5, backup=5)
+[2026-04-10 08:53:44] RESULTADO: OK — Backup verificado correctamente

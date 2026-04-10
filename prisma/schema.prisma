@@ -1,0 +1,702 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+// ═══════════════════════════════════════
+// USUARIOS Y ROLES
+// ═══════════════════════════════════════
+
+enum Rol {
+  ADMIN
+  COMERCIAL
+  COORDINADORA
+}
+
+model Usuario {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  nombre       String
+  apellidos    String
+  passwordHash String
+  rol          Rol
+  activo       Boolean   @default(true)
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  comercial Comercial?
+  sessions  Session[]
+  accounts  Account[]
+
+  @@map("usuarios")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Comercial {
+  id            String   @id @default(cuid())
+  usuarioId     String   @unique
+  telefono      String
+  zona          String
+  numRegistroCV String?
+  idiomas       String[] @default([])
+  fechaAlta     DateTime @default(now())
+  activo        Boolean  @default(true)
+
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id])
+  leads         Lead[]
+  inmuebles     Inmueble[]
+  visitas       Visita[]
+  tareas        Tarea[]
+  interacciones Interaccion[]
+  operaciones   Operacion[]
+  comisiones    Comision[]
+
+  @@map("comerciales")
+}
+
+// ═══════════════════════════════════════
+// LEADS (COMPRADORES/DEMANDANTES)
+// ═══════════════════════════════════════
+
+enum FuenteLead {
+  IDEALISTA
+  FOTOCASA
+  HABITACLIA
+  MILANUNCIOS
+  WEB_PROPIA
+  GOOGLE_ADS
+  META_ADS
+  REFERIDO
+  PUERTA_FRIA
+  TELEFONO
+  OTRO
+}
+
+enum FaseFunnel {
+  NUEVO
+  CONTACTADO
+  CUALIFICADO
+  VISITA_PROGRAMADA
+  VISITA_REALIZADA
+  OFERTA
+  RESERVA
+  CIERRE
+  PERDIDO
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  comercialId  String?
+  nombre       String
+  apellidos    String?
+  telefono     String?
+  email        String?
+  fuente       FuenteLead
+  faseFunnel   FaseFunnel @default(NUEVO)
+  score        Int        @default(0)
+  nacionalidad String?
+  idioma       String     @default("es")
+  notas        String?
+  favoritos    String[]   @default([])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  comercial     Comercial?    @relation(fields: [comercialId], references: [id])
+  demandas      Demanda[]
+  visitas       Visita[]
+  interacciones Interaccion[]
+  operaciones   Operacion[]
+  accesos       LeadAcceso[]
+
+  @@index([comercialId])
+  @@index([faseFunnel])
+  @@index([fuente])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+model Demanda {
+  id              String         @id @default(cuid())
+  leadId          String
+  tipoInmueble   TipoInmueble?
+  tipoOperacion   TipoOperacion?
+  precioMin       Decimal?       @db.Decimal(12, 2)
+  precioMax       Decimal?       @db.Decimal(12, 2)
+  zona            String?
+  habitacionesMin Int?
+  metrosMin       Int?
+  extras          Json?
+  createdAt       DateTime       @default(now())
+
+  lead      Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  matchings Matching[]
+
+  @@map("demandas")
+}
+
+// ═══════════════════════════════════════
+// PROPIETARIOS
+// ═══════════════════════════════════════
+
+model Propietario {
+  id             String    @id @default(cuid())
+  nombre         String
+  apellidos      String?
+  telefono       String?
+  email          String?
+  dniNie         String?
+  tipoDocumento  String?
+  nacionalidad   String?
+  actividadPro   String?
+  origenFondos   String?
+  kycVerificado  Boolean   @default(false)
+  kycFecha       DateTime?
+  notas          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  inmuebles Inmueble[]
+  informes  InformePropietario[]
+  accesos   PropietarioAcceso[]
+
+  @@map("propietarios")
+}
+
+model PropietarioAcceso {
+  id            String    @id @default(cuid())
+  propietarioId String
+  token         String    @unique
+  expiresAt     DateTime
+  ultimoAcceso  DateTime?
+  activo        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  propietario Propietario @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([propietarioId])
+  @@map("propietario_accesos")
+}
+
+// ═══════════════════════════════════════
+// INMUEBLES
+// ═══════════════════════════════════════
+
+enum TipoInmueble {
+  PISO
+  CASA
+  CHALET
+  ADOSADO
+  ATICO
+  DUPLEX
+  ESTUDIO
+  LOCAL
+  OFICINA
+  NAVE
+  SOLAR
+  GARAJE
+  TRASTERO
+  OTRO
+}
+
+enum TipoOperacion {
+  VENTA
+  ALQUILER
+  ALQUILER_OPCION_COMPRA
+  TRASPASO
+}
+
+enum EstadoInmueble {
+  EN_CAPTACION
+  ACTIVO
+  RESERVADO
+  VENDIDO
+  ALQUILADO
+  RETIRADO
+}
+
+model Inmueble {
+  id                String         @id @default(cuid())
+  comercialId       String?
+  propietarioId     String?
+  referencia        String         @unique
+  tipo              TipoInmueble
+  operacion         TipoOperacion
+  estado            EstadoInmueble @default(EN_CAPTACION)
+  titulo            String
+  descripcion       String?
+  precio            Decimal        @db.Decimal(12, 2)
+  metrosConstruidos Int?
+  metrosUtiles      Int?
+  habitaciones      Int?
+  banos             Int?
+  planta            Int?
+  ascensor          Boolean?
+  garaje            Boolean?
+  trastero          Boolean?
+  piscina           Boolean?
+  terraza           Boolean?
+  aireAcondicionado Boolean?
+  calefaccion       Boolean?
+  direccion         String
+  codigoPostal      String?
+  localidad         String
+  provincia         String         @default("Alicante")
+  latitud           Float?
+  longitud          Float?
+  refCatastral      String?
+  certEnergetico    String?
+  anoConst          Int?
+  ibiAnual          Decimal?       @db.Decimal(10, 2)
+  comunidadMes      Decimal?       @db.Decimal(10, 2)
+  licenciaTuristica String?
+  descripcionEn              String?
+  descripcionDe              String?
+  descripcionFr              String?
+  descripcionNl              String?
+  descripcionSv              String?
+  descripcionNo              String?
+  descripcionGeneradaPorIA   Boolean  @default(false)
+  fechaCaptacion    DateTime       @default(now())
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  comercial     Comercial?          @relation(fields: [comercialId], references: [id])
+  propietario   Propietario?        @relation(fields: [propietarioId], references: [id])
+  fotos         Foto[]
+  documentos    Documento[]
+  visitas       Visita[]
+  publicaciones Publicacion[]
+  matchings     Matching[]
+  operaciones   Operacion[]
+  informes      InformePropietario[]
+
+  @@index([comercialId])
+  @@index([estado])
+  @@index([tipo, operacion])
+  @@index([localidad])
+  @@index([precio])
+  @@map("inmuebles")
+}
+
+model Foto {
+  id           String   @id @default(cuid())
+  inmuebleId   String
+  url          String
+  thumbnailUrl String?
+  orden        Int      @default(0)
+  esPrincipal  Boolean  @default(false)
+  staged          Boolean  @default(false)
+  estiloStaging   String?
+  tipoHabitacion  String?
+  originalFotoId  String?
+  createdAt    DateTime @default(now())
+
+  inmueble Inmueble @relation(fields: [inmuebleId], references: [id], onDelete: Cascade)
+
+  @@map("fotos")
+}
+
+model Documento {
+  id         String   @id @default(cuid())
+  inmuebleId String
+  tipo       String
+  nombre     String
+  url        String
+  createdAt  DateTime @default(now())
+
+  inmueble Inmueble @relation(fields: [inmuebleId], references: [id], onDelete: Cascade)
+
+  @@map("documentos")
+}
+
+model LeadAcceso {
+  id           String    @id @default(cuid())
+  leadId       String
+  token        String    @unique
+  expiresAt    DateTime
+  ultimoAcceso DateTime?
+  activo       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([leadId])
+  @@map("lead_accesos")
+}
+
+// ═══════════════════════════════════════
+// VISITAS
+// ═══════════════════════════════════════
+
+enum ResultadoVisita {
+  PENDIENTE
+  REALIZADA_INTERESADO
+  REALIZADA_NO_INTERESADO
+  CANCELADA
+  NO_SHOW
+}
+
+model Visita {
+  id           String          @id @default(cuid())
+  leadId       String
+  inmuebleId   String
+  comercialId  String
+  fecha        DateTime
+  resultado    ResultadoVisita @default(PENDIENTE)
+  notasAntes   String?
+  notasDespues String?
+  audioUrl     String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  lead      Lead      @relation(fields: [leadId], references: [id])
+  inmueble  Inmueble  @relation(fields: [inmuebleId], references: [id])
+  comercial Comercial @relation(fields: [comercialId], references: [id])
+
+  @@index([comercialId, fecha])
+  @@index([leadId])
+  @@index([inmuebleId])
+  @@map("visitas")
+}
+
+// ═══════════════════════════════════════
+// TAREAS
+// ═══════════════════════════════════════
+
+enum TipoTarea {
+  LLAMAR
+  WHATSAPP
+  EMAIL
+  SUBIR_FOTOS
+  ENVIAR_INFORME
+  DOCUMENTACION
+  VISITA_CAPTACION
+  SEGUIMIENTO
+  OTRO
+}
+
+model Tarea {
+  id           String    @id @default(cuid())
+  comercialId  String
+  tipo         TipoTarea
+  descripcion  String
+  fechaLimite  DateTime?
+  completada   Boolean   @default(false)
+  completadaAt DateTime?
+  prioridad    Int       @default(0)
+  leadId       String?
+  inmuebleId   String?
+  createdAt    DateTime  @default(now())
+
+  comercial Comercial @relation(fields: [comercialId], references: [id])
+
+  @@index([comercialId, completada])
+  @@index([fechaLimite])
+  @@map("tareas")
+}
+
+// ═══════════════════════════════════════
+// INTERACCIONES
+// ═══════════════════════════════════════
+
+enum CanalInteraccion {
+  TELEFONO
+  WHATSAPP
+  EMAIL
+  PRESENCIAL
+  PORTAL
+  SISTEMA
+}
+
+model Interaccion {
+  id          String           @id @default(cuid())
+  leadId      String
+  comercialId String
+  canal       CanalInteraccion
+  contenido   String?
+  fecha       DateTime         @default(now())
+
+  lead      Lead      @relation(fields: [leadId], references: [id])
+  comercial Comercial @relation(fields: [comercialId], references: [id])
+
+  @@index([leadId, fecha])
+  @@map("interacciones")
+}
+
+// ═══════════════════════════════════════
+// MATCHING LEAD-INMUEBLE
+// ═══════════════════════════════════════
+
+model Matching {
+  id         String   @id @default(cuid())
+  demandaId  String
+  inmuebleId String
+  score      Int
+  visto      Boolean  @default(false)
+  descartado Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  demanda  Demanda  @relation(fields: [demandaId], references: [id])
+  inmueble Inmueble @relation(fields: [inmuebleId], references: [id])
+
+  @@unique([demandaId, inmuebleId])
+  @@map("matchings")
+}
+
+// ═══════════════════════════════════════
+// PUBLICACIONES EN PORTALES
+// ═══════════════════════════════════════
+
+enum Portal {
+  IDEALISTA
+  FOTOCASA
+  HABITACLIA
+  MILANUNCIOS
+  KYERO
+  THINKSPAIN
+  WEB_PROPIA
+  OTRO
+}
+
+enum EstadoPublicacion {
+  PENDIENTE
+  PUBLICADO
+  ERROR
+  RETIRADO
+}
+
+model Publicacion {
+  id         String            @id @default(cuid())
+  inmuebleId String
+  portal     Portal
+  refExterna String?
+  estado     EstadoPublicacion @default(PENDIENTE)
+  ultimaSync DateTime?
+  errorMsg   String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  inmueble Inmueble @relation(fields: [inmuebleId], references: [id])
+
+  @@unique([inmuebleId, portal])
+  @@map("publicaciones")
+}
+
+// ═══════════════════════════════════════
+// OPERACIONES
+// ═══════════════════════════════════════
+
+enum EstadoOperacion {
+  EN_NEGOCIACION
+  OFERTA_ACEPTADA
+  ARRAS_FIRMADAS
+  PENDIENTE_NOTARIA
+  CERRADA
+  CAIDA
+}
+
+enum TipoOperacionRealizada {
+  VENTA
+  ALQUILER
+}
+
+model Operacion {
+  id                     String                 @id @default(cuid())
+  inmuebleId             String
+  leadId                 String
+  comercialId            String
+  tipo                   TipoOperacionRealizada
+  estado                 EstadoOperacion        @default(EN_NEGOCIACION)
+  precioFinal            Decimal                @db.Decimal(12, 2)
+  comisionPctPropietario Decimal?               @db.Decimal(5, 2)
+  comisionTotal          Decimal?               @db.Decimal(12, 2)
+  fechaOferta            DateTime?
+  fechaArras             DateTime?
+  fechaCierre            DateTime?
+  notariaId              String?
+  notas                  String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  inmueble  Inmueble  @relation(fields: [inmuebleId], references: [id])
+  lead      Lead      @relation(fields: [leadId], references: [id])
+  comercial Comercial @relation(fields: [comercialId], references: [id])
+  comision  Comision?
+
+  @@index([comercialId])
+  @@index([estado])
+  @@map("operaciones")
+}
+
+// ═══════════════════════════════════════
+// COMISIONES (70/30)
+// ═══════════════════════════════════════
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  PARCIAL
+}
+
+model Comision {
+  id               String     @id @default(cuid())
+  operacionId      String     @unique
+  comercialId      String
+  total            Decimal    @db.Decimal(12, 2)
+  pctEmpresa       Decimal    @default(70) @db.Decimal(5, 2)
+  pctComercial     Decimal    @default(30) @db.Decimal(5, 2)
+  importeEmpresa   Decimal    @db.Decimal(12, 2)
+  importeComercial Decimal    @db.Decimal(12, 2)
+  estadoPago       EstadoPago @default(PENDIENTE)
+  fechaPago        DateTime?
+  createdAt        DateTime   @default(now())
+
+  operacion Operacion @relation(fields: [operacionId], references: [id])
+  comercial Comercial @relation(fields: [comercialId], references: [id])
+
+  @@index([comercialId])
+  @@map("comisiones")
+}
+
+// ═══════════════════════════════════════
+// INFORMES PROPIETARIOS
+// ═══════════════════════════════════════
+
+model InformePropietario {
+  id              String   @id @default(cuid())
+  propietarioId   String
+  inmuebleId      String
+  periodo         String
+  visitasCount    Int      @default(0)
+  consultasPortal Int      @default(0)
+  contactosCount  Int      @default(0)
+  resumen         String?
+  pdfUrl          String?
+  createdAt       DateTime @default(now())
+
+  propietario Propietario @relation(fields: [propietarioId], references: [id])
+  inmueble    Inmueble    @relation(fields: [inmuebleId], references: [id])
+
+  @@map("informes_propietario")
+}
+
+// ═══════════════════════════════════════
+// NOTIFICACIONES
+// ═══════════════════════════════════════
+
+model Notificacion {
+  id          String    @id @default(cuid())
+  usuarioId   String
+  tipo        String
+  titulo      String
+  mensaje     String
+  enlace      String?
+  entidadTipo String?
+  entidadId   String?
+  leida       Boolean   @default(false)
+  leidaAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([usuarioId, leida])
+  @@index([createdAt])
+  @@map("notificaciones")
+}
+
+// ═══════════════════════════════════════
+// AUDIT LOGS (RGPD)
+// ═══════════════════════════════════════
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  userEmail   String?
+  userRol     String?
+  accion      String
+  entidad     String
+  entidadId   String?
+  cambios     Json?
+  ip          String?
+  userAgent   String?
+  metadata    Json?
+  timestamp   DateTime @default(now())
+
+  @@index([entidad, entidadId])
+  @@index([userId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// ═══════════════════════════════════════
+// AUTOMATIZACIONES
+// ═══════════════════════════════════════
+
+model Automatizacion {
+  id         String   @id @default(cuid())
+  nombre     String
+  evento     String
+  condicion  Json?
+  accion     String
+  parametros Json?
+  activa     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  logs AutomatizacionLog[]
+
+  @@map("automatizaciones")
+}
+
+model AutomatizacionLog {
+  id               String   @id @default(cuid())
+  automatizacionId String
+  evento           String
+  entidadTipo      String
+  entidadId        String
+  resultado        String
+  detalle          String?
+  createdAt        DateTime @default(now())
+
+  automatizacion Automatizacion @relation(fields: [automatizacionId], references: [id], onDelete: Cascade)
+
+  @@index([automatizacionId])
+  @@index([createdAt])
+  @@map("automatizacion_logs")
+}

@@ -1,0 +1,74 @@
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Building2, Image as ImageIcon } from "lucide-react";
+import { formatCurrency } from "@/lib/utils/formatters";
+import { ESTADO_INMUEBLE_LABELS, TIPO_INMUEBLE_LABELS } from "@/lib/utils/constants";
+import type { ComercialInmueble } from "@/lib/types/comercial";
+
+const estadoColors: Record<string, { bg: string; text: string }> = {
+  EN_CAPTACION: { bg: "bg-blue-50", text: "text-blue-700" },
+  ACTIVO: { bg: "bg-emerald-50", text: "text-emerald-700" },
+  RESERVADO: { bg: "bg-amber-50", text: "text-amber-700" },
+  VENDIDO: { bg: "bg-slate-100", text: "text-slate-600" },
+  ALQUILADO: { bg: "bg-slate-100", text: "text-slate-600" },
+  RETIRADO: { bg: "bg-red-50", text: "text-red-700" },
+};
+
+interface InmueblesTabProps {
+  inmuebles: ComercialInmueble[];
+}
+
+export function InmueblesTab({ inmuebles }: InmueblesTabProps) {
+  if (inmuebles.length === 0) {
+    return <EmptyState icon={<Building2 className="h-8 w-8" />} title="Sin inmuebles" description="Este comercial no tiene inmuebles en cartera" />;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-border bg-muted/30">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-secondary/70 uppercase tracking-wider w-16">Foto</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-secondary/70 uppercase tracking-wider">Ref / Titulo</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-secondary/70 uppercase tracking-wider">Estado</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-secondary/70 uppercase tracking-wider">Precio</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-secondary/70 uppercase tracking-wider">Localidad</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-secondary/70 uppercase tracking-wider">Tipo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {inmuebles.map((inm) => {
+            const ec = estadoColors[inm.estado] ?? estadoColors.ACTIVO;
+            return (
+              <tr key={inm.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
+                <td className="px-4 py-3">
+                  <div className="w-14 h-10 rounded-lg bg-muted overflow-hidden">
+                    {inm.fotos[0] ? (
+                      <img src={inm.fotos[0].url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-4 w-4 text-secondary/30" /></div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <p className="text-xs font-mono text-secondary">{inm.referencia}</p>
+                  <p className="text-base font-semibold text-foreground truncate max-w-[250px]">{inm.titulo}</p>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold ${ec.bg} ${ec.text}`}>
+                    {ESTADO_INMUEBLE_LABELS[inm.estado] ?? inm.estado}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-base font-bold text-foreground">{formatCurrency(Number(inm.precio))}</td>
+                <td className="px-4 py-3 text-base text-secondary">{inm.localidad}</td>
+                <td className="px-4 py-3 text-sm text-secondary">{TIPO_INMUEBLE_LABELS[inm.tipo] ?? inm.tipo}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}

@@ -1,0 +1,225 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TaskList } from "@/components/comercial/task-list";
+import {
+  CalendarCheck, Phone, ClipboardList, Building2,
+  MessageCircle, Clock,
+} from "lucide-react";
+import { formatTime, formatCurrency } from "@/lib/utils/formatters";
+
+interface MiDiaData {
+  resumen: {
+    citasHoy: number;
+    llamadasPendientes: number;
+    tareasPendientes: number;
+  };
+  proximaCita: {
+    fecha: string;
+    lead: { nombre: string; apellidos: string | null; telefono: string | null };
+    inmueble: { titulo: string; direccion: string; precio: number };
+  } | null;
+  citasHoy: Array<{
+    id: string;
+    fecha: string;
+    lead: { nombre: string; apellidos: string | null; telefono: string | null };
+    inmueble: { titulo: string; direccion: string; precio: number };
+  }>;
+  tareasPendientes: Array<{
+    id: string;
+    descripcion: string;
+    prioridad: number;
+    completada: boolean;
+    tipo: string;
+    fechaLimite: string | null;
+  }>;
+  cartera: {
+    activos: number;
+    reservados: number;
+    enCaptacion: number;
+    visitasMes: number;
+    cierresMes: number;
+  };
+}
+
+export default function MiDiaPage() {
+  const [data, setData] = useState<MiDiaData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    fetch("/api/comercial")
+      .then((r) => r.json())
+      .then((res) => setData(res.data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const nombre = session?.user?.name?.split(" ")[0] ?? "";
+  const hora = new Date().getHours();
+  const saludo = hora < 13 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-20 rounded-2xl" />
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
+        </div>
+        <Skeleton className="h-32 rounded-2xl" />
+        <Skeleton className="h-48 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <div className="space-y-4">
+      {/* Saludo */}
+      <div className="rounded-2xl bg-gradient-to-r from-[#1a56db] to-[#3b82f6] p-4 text-white shadow-lg">
+        <p className="font-semibold">{saludo}{nombre ? `, ${nombre}` : ""} 👋</p>
+        <p className="text-xs opacity-70 mt-0.5">
+          {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+        </p>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
+            <CalendarCheck className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-2xl font-bold">{data.resumen.citasHoy}</p>
+          <p className="text-[10px] text-secondary leading-tight mt-0.5">{t("comercial.appointmentsToday")}</p>
+        </div>
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center">
+          <div className="w-9 h-9 rounded-xl bg-warning/10 flex items-center justify-center mx-auto mb-2">
+            <Phone className="h-5 w-5 text-warning" />
+          </div>
+          <p className="text-2xl font-bold">{data.resumen.llamadasPendientes}</p>
+          <p className="text-[10px] text-secondary leading-tight mt-0.5">{t("comercial.calls")}</p>
+        </div>
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center">
+          <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center mx-auto mb-2">
+            <ClipboardList className="h-5 w-5 text-success" />
+          </div>
+          <p className="text-2xl font-bold">{data.resumen.tareasPendientes}</p>
+          <p className="text-[10px] text-secondary leading-tight mt-0.5">{t("comercial.tasks")}</p>
+        </div>
+      </div>
+
+      {/* Próxima cita */}
+      {data.proximaCita && (
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-3 pb-2.5 border-b border-border/40">
+            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Clock className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <p className="text-sm font-semibold">{t("comercial.nextAppointment")}</p>
+          </div>
+          <div className="p-4">
+            <p className="text-2xl font-bold text-primary">{formatTime(data.proximaCita.fecha)}</p>
+            <p className="font-semibold text-foreground mt-1">
+              {data.proximaCita.lead.nombre} {data.proximaCita.lead.apellidos ?? ""}
+            </p>
+            <p className="text-sm text-secondary">{data.proximaCita.inmueble.titulo}</p>
+            <p className="text-xs text-secondary">{data.proximaCita.inmueble.direccion}</p>
+            <p className="text-sm font-bold text-foreground mt-1">
+              {formatCurrency(Number(data.proximaCita.inmueble.precio))}
+            </p>
+            {data.proximaCita.lead.telefono && (
+              <div className="flex gap-2 mt-3">
+                <a href={`tel:${data.proximaCita.lead.telefono}`} className="flex-1">
+                  <Button size="md" className="w-full"><Phone className="h-4 w-4" />{t("comercial.call")}</Button>
+                </a>
+                <a
+                  href={`https://wa.me/34${data.proximaCita.lead.telefono.replace(/\D/g, "")}`}
+                  target="_blank" rel="noopener noreferrer" className="flex-1"
+                >
+                  <Button size="md" variant="success" className="w-full">
+                    <MessageCircle className="h-4 w-4" />WhatsApp
+                  </Button>
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Resto de citas */}
+      {data.citasHoy.length > 1 && (
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-3 pb-2.5 border-b border-border/40">
+            <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center">
+              <CalendarCheck className="h-3.5 w-3.5 text-amber-600" />
+            </div>
+            <p className="text-sm font-semibold">{t("comercial.appointmentsToday")}</p>
+            <Badge variant="warning" size="sm" className="ml-auto">{data.citasHoy.length}</Badge>
+          </div>
+          <div className="divide-y divide-border/40">
+            {data.citasHoy.map((cita) => (
+              <div key={cita.id} className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold">
+                    {formatTime(cita.fecha)} — {cita.lead.nombre} {cita.lead.apellidos ?? ""}
+                  </p>
+                  <p className="text-xs text-secondary">{cita.inmueble.titulo}</p>
+                </div>
+                {cita.lead.telefono && (
+                  <a href={`tel:${cita.lead.telefono}`}>
+                    <Button size="icon" variant="ghost"><Phone className="h-4 w-4" /></Button>
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tareas */}
+      {data.tareasPendientes.length > 0 && <TaskList tareas={data.tareasPendientes} />}
+
+      {/* Mi cartera */}
+      <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2 px-4 pt-3 pb-2.5 border-b border-border/40">
+          <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center">
+            <Building2 className="h-3.5 w-3.5 text-slate-600" />
+          </div>
+          <p className="text-sm font-semibold">{t("comercial.myPortfolio")}</p>
+        </div>
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-emerald-50 p-3">
+              <p className="text-xl font-bold text-emerald-700">{data.cartera.activos}</p>
+              <p className="text-[10px] text-emerald-600">{t("comercial.activeProperties")}</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 p-3">
+              <p className="text-xl font-bold text-amber-700">{data.cartera.reservados}</p>
+              <p className="text-[10px] text-amber-600">{t("comercial.reserved")}</p>
+            </div>
+            <div className="rounded-xl bg-blue-50 p-3">
+              <p className="text-xl font-bold text-blue-700">{data.cartera.enCaptacion}</p>
+              <p className="text-[10px] text-blue-600">{t("comercial.inCapture")}</p>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-2 gap-2">
+            <div className="text-center">
+              <p className="text-lg font-bold">{data.cartera.visitasMes}</p>
+              <p className="text-[10px] text-secondary">{t("comercial.monthlyVisits")}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold">{data.cartera.cierresMes}</p>
+              <p className="text-[10px] text-secondary">{t("comercial.monthlyClosings")}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

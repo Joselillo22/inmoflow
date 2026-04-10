@@ -1,0 +1,357 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { SlideOver } from "@/components/ui/slide-over";
+import { Tabs } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar } from "@/components/ui/avatar";
+import { EstadoSelector } from "./estado-selector";
+import { PhotoGallery } from "./photo-gallery";
+import { PublicationManager } from "./publication-manager";
+import { DocumentManager } from "./document-manager";
+import { MapPin, BedDouble, Bath, Ruler, Building2, Calculator, Search, Loader2 } from "lucide-react";
+import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { TIPO_INMUEBLE_LABELS, TIPO_OPERACION_LABELS, RESULTADO_VISITA_LABELS } from "@/lib/utils/constants";
+import type { InmuebleDetail } from "@/lib/types/inmueble";
+import { MapaInmueble } from "@/components/shared/MapaInmuebleDynamic";
+import { CalculadoraFiscalModal } from "./calculadora-fiscal-modal";
+
+interface InmuebleDetailSlideOverProps {
+  inmuebleId: string | null;
+  onClose: () => void;
+  onUpdated?: () => void;
+}
+
+const tipoOptions = Object.entries(TIPO_INMUEBLE_LABELS).map(([v, l]) => ({ value: v, label: l }));
+const opOptions = Object.entries(TIPO_OPERACION_LABELS).map(([v, l]) => ({ value: v, label: l }));
+
+const extrasFields = [
+  { key: "ascensor", label: "Ascensor" },
+  { key: "garaje", label: "Garaje" },
+  { key: "trastero", label: "Trastero" },
+  { key: "piscina", label: "Piscina" },
+  { key: "terraza", label: "Terraza" },
+  { key: "aireAcondicionado", label: "A/C" },
+  { key: "calefaccion", label: "Calefaccion" },
+];
+
+export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: InmuebleDetailSlideOverProps) {
+  const [inm, setInm] = useState<InmuebleDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("ficha");
+  const [showCalculadora, setShowCalculadora] = useState(false);
+  const [consultandoCatastro, setConsultandoCatastro] = useState(false);
+  const { toast } = useToast();
+
+  const fetchInmueble = useCallback(async () => {
+    if (!inmuebleId) return;
+    setLoading(true);
+    const res = await fetch(`/api/inmuebles/${inmuebleId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setInm(data.data);
+    }
+    setLoading(false);
+  }, [inmuebleId]);
+
+  useEffect(() => {
+    if (inmuebleId) {
+      setActiveTab("ficha");
+      fetchInmueble();
+    }
+  }, [inmuebleId, fetchInmueble]);
+
+  async function handleEstadoChange(estado: string) {
+    if (!inmuebleId) return;
+    const res = await fetch(`/api/inmuebles/${inmuebleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado }),
+    });
+    if (res.ok) { fetchInmueble(); onUpdated?.(); toast("Estado actualizado", "success"); }
+  }
+
+  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!inmuebleId) return;
+    const fd = new FormData(e.currentTarget);
+    const body: Record<string, unknown> = {};
+    for (const [key, value] of fd.entries()) {
+      if (key === "precio" || key === "metrosConstruidos" || key === "metrosUtiles" || key === "habitaciones" || key === "banos" || key === "planta" || key === "anoConst") {
+        if (value) body[key] = Number(value);
+      } else if (value) {
+        body[key] = value;
+      }
+    }
+    // Extras checkboxes
+    extrasFields.forEach(({ key }) => {
+      body[key] = fd.get(key) === "on";
+    });
+
+    const res = await fetch(`/api/inmuebles/${inmuebleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) { fetchInmueble(); onUpdated?.(); toast("Datos guardados", "success"); }
+  }
+
+  async function consultarCatastro() {
+    if (!inm?.refCatastral) { toast("Introduce la referencia catastral primero", "error"); return; }
+    setConsultandoCatastro(true);
+    try {
+      const res = await fetch("/api/catastro/consulta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referenciaCatastral: inm.refCatastral }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error ?? "Error al consultar Catastro", "error"); return; }
+      if (data.datos) {
+        const d = data.datos;
+        const updates: Record<string, unknown> = {};
+        if (d.superficie && !inm.metrosConstruidos) updates.metrosConstruidos = d.superficie;
+        if (d.anoConst && !inm.anoConst) updates.anoConst = d.anoConst;
+        if (d.latitud && d.longitud) { updates.latitud = d.latitud; updates.longitud = d.longitud; }
+        if (Object.keys(updates).length > 0) {
+          await fetch(`/api/inmuebles/${inmuebleId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+          });
+          fetchInmueble();
+          toast("Datos actualizados desde Catastro", "success");
+        } else {
+          toast("Catastro consultado — no hay datos nuevos para rellenar", "success");
+        }
+      }
+    } catch {
+      toast("Error de conexión con Catastro", "error");
+    } finally {
+      setConsultandoCatastro(false);
+    }
+  }
+
+  const tabs = [
+    { id: "ficha", label: "Ficha" },
+    { id: "fotos", label: "Fotos", count: inm?._count.fotos },
+    { id: "docs", label: "Docs", count: inm?._count.documentos },
+    { id: "portales", label: "Portales", count: inm?._count.publicaciones },
+    { id: "visitas", label: "Visitas", count: inm?._count.visitas },
+  ];
+
+  const principalFoto = inm?.fotos.find((f) => f.esPrincipal) ?? inm?.fotos[0];
+
+  return (
+    <SlideOver open={!!inmuebleId} onClose={onClose} width="w-[600px]">
+      {loading || !inm ? (
+        <div className="p-5 space-y-4">
+          <Skeleton className="w-full h-40 rounded-xl" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      ) : (
+        <div className="flex flex-col h-full">
+          {/* Banner */}
+          <div className="relative h-44 bg-gradient-to-br from-slate-200 to-slate-100 shrink-0">
+            {principalFoto ? (
+              <img src={principalFoto.url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Building2 className="h-12 w-12 text-secondary/30" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-4 right-4">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-white/70 text-[10px] font-mono">{inm.referencia}</span>
+                <EstadoSelector value={inm.estado} onChange={handleEstadoChange} />
+              </div>
+              <p className="text-white text-lg font-bold leading-tight">{formatCurrency(Number(inm.precio))}</p>
+              {inm.operacion === "ALQUILER" && <span className="text-white/60 text-xs">/mes</span>}
+            </div>
+          </div>
+
+          {/* Quick info */}
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-sm font-semibold text-foreground mb-1">{inm.titulo}</p>
+            <p className="text-xs text-secondary flex items-center gap-1 mb-2">
+              <MapPin className="h-3 w-3" /> {inm.direccion}, {inm.localidad}
+            </p>
+            <div className="flex gap-3">
+              {[
+                { icon: Ruler, value: inm.metrosConstruidos ? `${inm.metrosConstruidos}m²` : null },
+                { icon: BedDouble, value: inm.habitaciones ? `${inm.habitaciones} hab` : null },
+                { icon: Bath, value: inm.banos ? `${inm.banos} ban` : null },
+              ].filter((i) => i.value).map((item, idx) => (
+                <span key={idx} className="flex items-center gap-1 text-xs text-secondary">
+                  <item.icon className="h-3 w-3" /> {item.value}
+                </span>
+              ))}
+              <Badge variant="outline" size="sm">{TIPO_INMUEBLE_LABELS[inm.tipo]}</Badge>
+              <Badge variant="outline" size="sm">{TIPO_OPERACION_LABELS[inm.operacion]}</Badge>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="px-4" />
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === "ficha" && (
+              <form onSubmit={handleSave} className="p-4 space-y-4">
+                <Input id="titulo" name="titulo" label="Titulo" defaultValue={inm.titulo} compact />
+                <Textarea id="descripcion" name="descripcion" label="Descripcion" defaultValue={inm.descripcion ?? ""} />
+                <div className="grid grid-cols-2 gap-3">
+                  <Select id="tipo" name="tipo" label="Tipo" options={tipoOptions} defaultValue={inm.tipo} compact />
+                  <Select id="operacion" name="operacion" label="Operacion" options={opOptions} defaultValue={inm.operacion} compact />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <Input id="precio" name="precio" label="Precio" type="number" defaultValue={Number(inm.precio)} compact />
+                  <Input id="metrosConstruidos" name="metrosConstruidos" label="m² construidos" type="number" defaultValue={inm.metrosConstruidos ?? ""} compact />
+                  <Input id="metrosUtiles" name="metrosUtiles" label="m² utiles" type="number" defaultValue={inm.metrosUtiles ?? ""} compact />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <Input id="habitaciones" name="habitaciones" label="Habitaciones" type="number" defaultValue={inm.habitaciones ?? ""} compact />
+                  <Input id="banos" name="banos" label="Banos" type="number" defaultValue={inm.banos ?? ""} compact />
+                  <Input id="planta" name="planta" label="Planta" type="number" defaultValue={inm.planta ?? ""} compact />
+                </div>
+                <Input id="direccion" name="direccion" label="Direccion" defaultValue={inm.direccion} compact />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input id="localidad" name="localidad" label="Localidad" defaultValue={inm.localidad} compact />
+                  <Input id="codigoPostal" name="codigoPostal" label="CP" defaultValue={inm.codigoPostal ?? ""} compact />
+                </div>
+
+                {/* Extras */}
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-2 block">Extras</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {extrasFields.map(({ key, label }) => (
+                      <label key={key} className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer">
+                        <input type="checkbox" name={key} defaultChecked={!!(inm as unknown as Record<string, unknown>)[key]} className="rounded" />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Datos legales */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-foreground">Datos legales</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowCalculadora(true)}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-[11px] font-semibold transition-colors cursor-pointer"
+                      >
+                        <Calculator className="h-3 w-3" />
+                        Calculadora fiscal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={consultarCatastro}
+                        disabled={consultandoCatastro}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-60"
+                      >
+                        {consultandoCatastro ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                        Consultar Catastro
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input id="refCatastral" name="refCatastral" label="Ref. catastral" defaultValue={inm.refCatastral ?? ""} compact />
+                    <Input id="certEnergetico" name="certEnergetico" label="Cert. energetico" defaultValue={inm.certEnergetico ?? ""} compact />
+                    <Input id="anoConst" name="anoConst" label="Ano construccion" type="number" defaultValue={inm.anoConst ?? ""} compact />
+                    <Input id="licenciaTuristica" name="licenciaTuristica" label="Lic. turistica" defaultValue={inm.licenciaTuristica ?? ""} compact />
+                  </div>
+                </div>
+
+                {/* Propietario & Comercial */}
+                <div className="border-t border-border pt-4 mt-4 space-y-3">
+                  {inm.propietario && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted">
+                      <Avatar name={`${inm.propietario.nombre} ${inm.propietario.apellidos ?? ""}`} size="sm" />
+                      <div className="flex-1">
+                        <p className="text-xs font-medium">{inm.propietario.nombre} {inm.propietario.apellidos ?? ""}</p>
+                        {inm.propietario.telefono && <p className="text-[10px] text-secondary">{inm.propietario.telefono}</p>}
+                      </div>
+                      <Badge size="sm" variant="default">Propietario</Badge>
+                    </div>
+                  )}
+                  {inm.comercial && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted">
+                      <Avatar name={`${inm.comercial.usuario.nombre} ${inm.comercial.usuario.apellidos}`} size="sm" />
+                      <p className="text-xs font-medium flex-1">{inm.comercial.usuario.nombre} {inm.comercial.usuario.apellidos}</p>
+                      <Badge size="sm" variant="info">Comercial</Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* Mapa */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <p className="text-xs font-semibold text-foreground mb-3">Mapa</p>
+                  <MapaInmueble
+                    latitud={inm.latitud}
+                    longitud={inm.longitud}
+                    direccion={`${inm.direccion}, ${inm.localidad}`}
+                    titulo={inm.titulo}
+                    precio={Number(inm.precio)}
+                    altura={300}
+                    modo="full"
+                  />
+                </div>
+
+                <Button type="submit" size="sm" className="mt-4">Guardar cambios</Button>
+              </form>
+            )}
+
+            {activeTab === "fotos" && (
+              <PhotoGallery inmuebleId={inm.id} fotos={inm.fotos} onUpdate={fetchInmueble} />
+            )}
+
+            {activeTab === "docs" && (
+              <DocumentManager inmuebleId={inm.id} documentos={inm.documentos} onUpdate={fetchInmueble} />
+            )}
+
+            {activeTab === "portales" && (
+              <PublicationManager inmuebleId={inm.id} publicaciones={inm.publicaciones} onUpdate={fetchInmueble} />
+            )}
+
+            {activeTab === "visitas" && (
+              <div className="p-4 space-y-3">
+                {inm.visitas.map((v) => (
+                  <div key={v.id} className="rounded-xl border border-border/50 bg-white/60 p-3.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-foreground">{formatDate(v.fecha)}</span>
+                      <Badge size="sm" variant={v.resultado.includes("INTERESADO") ? "success" : v.resultado === "CANCELADA" || v.resultado === "NO_SHOW" ? "danger" : "default"}>
+                        {RESULTADO_VISITA_LABELS[v.resultado] ?? v.resultado}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-foreground">{v.lead.nombre} {v.lead.apellidos ?? ""}</p>
+                    {v.lead.telefono && <p className="text-[10px] text-secondary">{v.lead.telefono}</p>}
+                  </div>
+                ))}
+                {inm.visitas.length === 0 && (
+                  <p className="text-xs text-secondary text-center py-8">Sin visitas registradas</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <CalculadoraFiscalModal
+        open={showCalculadora}
+        onClose={() => setShowCalculadora(false)}
+        precioInicial={inm ? Number(inm.precio) : undefined}
+      />
+    </SlideOver>
+  );
+}
