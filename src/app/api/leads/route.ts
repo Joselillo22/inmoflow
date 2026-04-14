@@ -27,7 +27,10 @@ async function _GET(req: NextRequest) {
     const sortBy = searchParams.get("sortBy") ?? "createdAt";
     const sortOrder = (searchParams.get("sortOrder") ?? "desc") as "asc" | "desc";
 
+    const sinAsignar = searchParams.get("sinAsignar");
+
     const where: Record<string, unknown> = {};
+    if (sinAsignar === "true") where.comercialId = null;
     if (faseFunnel) where.faseFunnel = faseFunnel;
     if (fuente) where.fuente = fuente;
     if (comercialId) where.comercialId = comercialId;

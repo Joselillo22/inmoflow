@@ -31,6 +31,7 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [search, setSearch] = useState("");
+  const [sinAsignar, setSinAsignar] = useState(false);
   const [faseFunnel, setFaseFunnel] = useState<string>("");
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -47,6 +48,7 @@ export default function LeadsPage() {
     params.set("sortBy", sortBy);
     params.set("sortOrder", sortOrder);
     if (search) params.set("search", search);
+    if (sinAsignar) params.set("sinAsignar", "true");
     if (faseFunnel) params.set("faseFunnel", faseFunnel);
 
     const res = await fetch(`/api/leads?${params}`);
@@ -56,7 +58,12 @@ export default function LeadsPage() {
       setTotal(data.total ?? 0);
     }
     setLoading(false);
-  }, [page, limit, search, faseFunnel, sortBy, sortOrder]);
+  }, [page, limit, search, sinAsignar, faseFunnel, sortBy, sortOrder]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("sinAsignar") === "true") setSinAsignar(true);
+  }, []);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
@@ -151,7 +158,16 @@ export default function LeadsPage() {
           ))}
         </div>
 
-        {(search || faseFunnel) && (
+        {sinAsignar && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-orange-100 text-orange-700 font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              Solo sin asignar
+              <button onClick={() => setSinAsignar(false)} className="hover:text-orange-900 cursor-pointer ml-1">&times;</button>
+            </span>
+          </div>
+        )}
+
+        {(search || faseFunnel || sinAsignar) && (
           <button
             onClick={() => { setSearch(""); setFaseFunnel(""); setPage(1); }}
             className="flex items-center gap-1 text-xs text-secondary hover:text-foreground cursor-pointer"

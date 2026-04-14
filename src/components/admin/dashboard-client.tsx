@@ -7,6 +7,7 @@ import {
   Euro, Eye, UserX,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/formatters";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 
 function DonutChart({ data }: { data: { label: string; value: number; color: string }[] }) {
@@ -81,17 +82,17 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
   const { t } = useTranslation();
 
   const mainKpis = [
-    { labelKey: "dashboard.totalProperties", value: stats.totalInmuebles, icon: Building2, iconBg: "bg-slate-100", iconColor: "text-slate-500" },
-    { labelKey: "dashboard.activeLeads", value: stats.totalLeads, icon: Users, iconBg: "bg-slate-100", iconColor: "text-slate-500" },
-    { labelKey: "dashboard.commercialAgents", value: stats.totalComerciales, icon: UserCircle, iconBg: "bg-slate-100", iconColor: "text-slate-500" },
-    { labelKey: "dashboard.operations", value: stats.totalOperaciones, icon: Handshake, iconBg: "bg-slate-100", iconColor: "text-slate-500" },
+    { labelKey: "dashboard.totalProperties", value: stats.totalInmuebles, icon: Building2, iconBg: "bg-slate-100", iconColor: "text-slate-500", href: "/inmuebles" },
+    { labelKey: "dashboard.activeLeads", value: stats.totalLeads, icon: Users, iconBg: "bg-slate-100", iconColor: "text-slate-500", href: "/leads" },
+    { labelKey: "dashboard.commercialAgents", value: stats.totalComerciales, icon: UserCircle, iconBg: "bg-slate-100", iconColor: "text-slate-500", href: "/comerciales" },
+    { labelKey: "dashboard.operations", value: stats.totalOperaciones, icon: Handshake, iconBg: "bg-slate-100", iconColor: "text-slate-500", href: "/operaciones" },
   ];
 
   const monthKpis = [
-    { labelKey: "dashboard.monthlyRevenue", value: formatCurrency(stats.facturacionMes), icon: Euro, iconBg: "bg-slate-100", iconColor: "text-slate-500", highlight: false },
-    { labelKey: "dashboard.monthlyClosings", value: stats.operacionesCerradasMes, icon: TrendingUp, iconBg: "bg-slate-100", iconColor: "text-slate-500", highlight: false },
-    { labelKey: "dashboard.monthlyVisits", value: stats.visitasMes, icon: Eye, iconBg: "bg-slate-100", iconColor: "text-slate-500", highlight: false },
-    { labelKey: "dashboard.unassignedLeads", value: stats.leadsSinAsignar, icon: UserX, iconBg: "bg-orange-50", iconColor: "text-orange-500", highlight: true },
+    { labelKey: "dashboard.monthlyRevenue", value: formatCurrency(stats.facturacionMes), icon: Euro, iconBg: "bg-slate-100", iconColor: "text-slate-500", highlight: false, href: "/operaciones" },
+    { labelKey: "dashboard.monthlyClosings", value: stats.operacionesCerradasMes, icon: TrendingUp, iconBg: "bg-slate-100", iconColor: "text-slate-500", highlight: false, href: "/operaciones" },
+    { labelKey: "dashboard.monthlyVisits", value: stats.visitasMes, icon: Eye, iconBg: "bg-slate-100", iconColor: "text-slate-500", highlight: false, href: "/calendario" },
+    { labelKey: "dashboard.unassignedLeads", value: stats.leadsSinAsignar, icon: UserX, iconBg: "bg-orange-50", iconColor: "text-orange-500", highlight: true, href: "/leads?sinAsignar=true" },
   ];
 
   const donutColors: Record<string, string> = {
@@ -116,9 +117,10 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
       {/* Main KPIs */}
       <div className="grid grid-cols-4 gap-4">
         {mainKpis.map((kpi) => (
-          <div
+          <Link
             key={kpi.labelKey}
-            className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-[0_2px_16px_rgba(0,0,0,0.04)] p-5 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5"
+            href={kpi.href}
+            className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-[0_2px_16px_rgba(0,0,0,0.04)] p-5 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 cursor-pointer block"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className={`w-10 h-10 rounded-xl ${kpi.iconBg} flex items-center justify-center`}>
@@ -127,16 +129,17 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
               <span className="text-xs font-medium text-secondary">{t(kpi.labelKey)}</span>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">{kpi.value}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
       {/* Monthly KPIs */}
       <div className="grid grid-cols-4 gap-4">
         {monthKpis.map((kpi) => (
-          <div
+          <Link
             key={kpi.labelKey}
-            className={`rounded-2xl border shadow-[0_2px_16px_rgba(0,0,0,0.04)] p-5 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 ${
+            href={kpi.href}
+            className={`rounded-2xl border shadow-[0_2px_16px_rgba(0,0,0,0.04)] p-5 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 cursor-pointer block ${
               kpi.highlight
                 ? "bg-orange-50/80 border-orange-200/60 backdrop-blur-sm"
                 : "bg-white/70 border-white/60 backdrop-blur-sm"
@@ -149,7 +152,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
               <span className="text-xs font-medium text-secondary">{t(kpi.labelKey)}</span>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">{kpi.value}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
