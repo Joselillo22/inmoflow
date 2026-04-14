@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import {
-  Wrench, Search, Plus, Star, Phone, Mail,
+  Wrench, Search, Plus, Star, Phone, Mail, MessageCircle,
   FileText, Clock, CheckCircle, Send, AlertTriangle,
   ChevronRight, X, Loader2,
 } from "lucide-react";
@@ -752,24 +752,58 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
               {/* Pendientes */}
               {pendientes.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-amber-500" /> Esperando respuesta ({pendientes.length})
-                  </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-amber-500" /> Esperando respuesta ({pendientes.length})
+                    </p>
+                    {pendientes.some((s) => s.proveedor.telefono) && (
+                      <button
+                        onClick={() => {
+                          pendientes.forEach((s) => {
+                            if (s.proveedor.telefono) {
+                              const waText = `Hola ${s.proveedor.nombre}, te recordamos que tenemos pendiente tu presupuesto para: *${data.titulo}*. ¿Podrías enviárnoslo? Gracias.`;
+                              window.open(`https://wa.me/34${s.proveedor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(waText)}`, "_blank");
+                            }
+                          });
+                        }}
+                        className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer flex items-center gap-1"
+                      >
+                        <MessageCircle className="h-3 w-3" /> Recordar a todos
+                      </button>
+                    )}
+                  </div>
                   <div className="space-y-2">
                     {pendientes.map((s) => {
                       const dias = Math.floor((Date.now() - new Date(s.enviadaAt!).getTime()) / 86400000);
+                      const waText = `Hola ${s.proveedor.nombre}, somos InmoFlow.%0A%0ANecesitamos presupuesto para:%0A*${data.titulo}*%0A${data.descripcion ?? ""}%0A%0A¿Podrías enviarnos tu presupuesto? Gracias.`;
+                      const waUrl = s.proveedor.telefono
+                        ? `https://wa.me/34${s.proveedor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(waText)}`
+                        : null;
                       return (
-                        <div key={s.id} className="p-3.5 rounded-xl border border-border/50 bg-slate-50">
-                          <div className="flex items-center justify-between">
+                        <div key={s.id} className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/50">
+                          <div className="flex items-center justify-between mb-2">
                             <div>
-                              <p className="text-sm font-medium text-foreground">{s.proveedor.nombre}</p>
-                              <p className="text-xs text-secondary">{dias} día{dias !== 1 ? "s" : ""} esperando · {s.recordatoriosEnviados} recordatorio{s.recordatoriosEnviados !== 1 ? "s" : ""}</p>
+                              <p className="text-sm font-semibold text-foreground">{s.proveedor.nombre}</p>
+                              <p className="text-xs text-secondary">
+                                {dias} día{dias !== 1 ? "s" : ""} esperando
+                                {s.recordatoriosEnviados > 0 && ` · ${s.recordatoriosEnviados} recordatorio${s.recordatoriosEnviados !== 1 ? "s" : ""}`}
+                              </p>
                             </div>
+                            {s.proveedor.telefono && <Phone className="h-4 w-4 text-secondary" />}
+                          </div>
+                          <div className="flex gap-2">
+                            {waUrl && (
+                              <a href={waUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                                <button className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors">
+                                  <MessageCircle className="h-4 w-4" /> Pedir por WhatsApp
+                                </button>
+                              </a>
+                            )}
                             <button
                               onClick={() => registrarPresupuesto(s.id)}
-                              className="text-xs font-semibold text-primary hover:text-primary/80 cursor-pointer"
+                              className="flex-1 h-10 border border-border rounded-xl text-xs font-semibold text-foreground flex items-center justify-center gap-1.5 cursor-pointer hover:bg-muted transition-colors"
                             >
-                              Registrar presupuesto
+                              <CheckCircle className="h-4 w-4" /> Ya lo recibí
                             </button>
                           </div>
                         </div>
