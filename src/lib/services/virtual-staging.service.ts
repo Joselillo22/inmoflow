@@ -78,7 +78,7 @@ export async function stageImage(
   const start = Date.now();
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-exp-image-generation",
+    model: "gemini-2.5-flash-image",
     contents: [
       {
         role: "user",
