@@ -15,7 +15,7 @@ import { EstadoSelector } from "./estado-selector";
 import { PhotoGallery } from "./photo-gallery";
 import { PublicationManager } from "./publication-manager";
 import { DocumentManager } from "./document-manager";
-import { MapPin, BedDouble, Bath, Ruler, Building2, Calculator, Search, Loader2 } from "lucide-react";
+import { MapPin, BedDouble, Bath, Ruler, Building2, Calculator, Search, Loader2, Sparkles, RefreshCw, Languages, ChevronDown, ChevronUp, X, Check } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { TIPO_INMUEBLE_LABELS, TIPO_OPERACION_LABELS, RESULTADO_VISITA_LABELS } from "@/lib/utils/constants";
 import type { InmuebleDetail } from "@/lib/types/inmueble";
@@ -41,6 +41,15 @@ const extrasFields = [
   { key: "calefaccion", label: "Calefaccion" },
 ];
 
+const IDIOMAS = [
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "nl", label: "Nederlands", flag: "🇳🇱" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "sv", label: "Svenska", flag: "🇸🇪" },
+  { code: "no", label: "Norsk", flag: "🇳🇴" },
+];
+
 export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: InmuebleDetailSlideOverProps) {
   const [inm, setInm] = useState<InmuebleDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,6 +58,21 @@ export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: Inmu
   const [consultandoCatastro, setConsultandoCatastro] = useState(false);
   const { toast } = useToast();
 
+  // Descripcion controlada para IA
+  const [descripcion, setDescripcion] = useState("");
+  const [generadaPorIA, setGeneradaPorIA] = useState(false);
+
+  // Modal IA
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiText, setAiText] = useState("");
+
+  // Traducciones
+  const [tradOpen, setTradOpen] = useState(false);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [translatingAll, setTranslatingAll] = useState(false);
+  const [translatingLang, setTranslatingLang] = useState<string | null>(null);
+
   const fetchInmueble = useCallback(async () => {
     if (!inmuebleId) return;
     setLoading(true);
@@ -56,6 +80,14 @@ export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: Inmu
     if (res.ok) {
       const data = await res.json();
       setInm(data.data);
+      setDescripcion(data.data.descripcion ?? "");
+      setGeneradaPorIA(data.data.descripcionGeneradaPorIA ?? false);
+      const t: Record<string, string> = {};
+      for (const { code } of IDIOMAS) {
+        const key = `descripcion${code.charAt(0).toUpperCase() + code.slice(1)}` as keyof typeof data.data;
+        if (data.data[key]) t[code] = data.data[key] as string;
+      }
+      setTranslations(t);
     }
     setLoading(false);
   }, [inmuebleId]);
@@ -93,6 +125,13 @@ export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: Inmu
     extrasFields.forEach(({ key }) => {
       body[key] = fd.get(key) === "on";
     });
+    // Descripción controlada + traducciones
+    body.descripcion = descripcion;
+    body.descripcionGeneradaPorIA = generadaPorIA;
+    for (const { code } of IDIOMAS) {
+      const key = `descripcion${code.charAt(0).toUpperCase() + code.slice(1)}`;
+      if (translations[code]) body[key] = translations[code];
+    }
 
     const res = await fetch(`/api/inmuebles/${inmuebleId}`, {
       method: "PATCH",
@@ -100,6 +139,75 @@ export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: Inmu
       body: JSON.stringify(body),
     });
     if (res.ok) { fetchInmueble(); onUpdated?.(); toast("Datos guardados", "success"); }
+  }
+
+  async function generateAI() {
+    if (!inmuebleId) return;
+    setAiGenerating(true);
+    setAiText("");
+    setAiModalOpen(true);
+    try {
+      const res = await fetch(`/api/inmuebles/${inmuebleId}/descripcion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idioma: "es" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAiText(data.descripcion);
+      } else {
+        toast(data.error ?? "Error al generar", "error");
+        setAiModalOpen(false);
+      }
+    } catch {
+      toast("Error de conexión", "error");
+      setAiModalOpen(false);
+    } finally {
+      setAiGenerating(false);
+    }
+  }
+
+  function useAIText() {
+    setDescripcion(aiText);
+    setGeneradaPorIA(true);
+    setAiModalOpen(false);
+    toast("Descripción aplicada. Pulsa Guardar.", "success");
+  }
+
+  async function translateLang(code: string) {
+    if (!inmuebleId || !descripcion) return;
+    setTranslatingLang(code);
+    try {
+      const res = await fetch(`/api/inmuebles/${inmuebleId}/descripcion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idioma: code }),
+      });
+      const data = await res.json();
+      if (res.ok) setTranslations((prev) => ({ ...prev, [code]: data.descripcion }));
+    } catch { /* ignore */ }
+    setTranslatingLang(null);
+  }
+
+  async function translateAll() {
+    if (!inmuebleId || !descripcion) { toast("Primero escribe o genera la descripción en español", "error"); return; }
+    setTranslatingAll(true);
+    try {
+      const res = await fetch(`/api/inmuebles/${inmuebleId}/descripcion/todas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok && data.descripciones) {
+        const newT: Record<string, string> = {};
+        for (const { code } of IDIOMAS) {
+          if (data.descripciones[code]) newT[code] = data.descripciones[code];
+        }
+        setTranslations(newT);
+        toast("Traducciones generadas", "success");
+      }
+    } catch { /* ignore */ }
+    setTranslatingAll(false);
   }
 
   async function consultarCatastro() {
@@ -207,7 +315,80 @@ export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: Inmu
             {activeTab === "ficha" && (
               <form onSubmit={handleSave} className="p-4 space-y-4">
                 <Input id="titulo" name="titulo" label="Titulo" defaultValue={inm.titulo} compact />
-                <Textarea id="descripcion" name="descripcion" label="Descripcion" defaultValue={inm.descripcion ?? ""} />
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      Descripción
+                      {generadaPorIA && <Badge size="sm" variant="info" className="text-[9px]">IA</Badge>}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={generateAI}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 cursor-pointer"
+                    >
+                      <Sparkles className="h-3 w-3" /> Generar con IA
+                    </button>
+                  </div>
+                  <textarea
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    rows={4}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-background text-foreground resize-none"
+                  />
+                </div>
+
+                {/* Traducciones */}
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setTradOpen(!tradOpen)}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-muted cursor-pointer"
+                  >
+                    <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <Languages className="h-3.5 w-3.5" /> Traducciones ({Object.keys(translations).length}/6)
+                    </span>
+                    {tradOpen ? <ChevronUp className="h-3.5 w-3.5 text-secondary" /> : <ChevronDown className="h-3.5 w-3.5 text-secondary" />}
+                  </button>
+                  {tradOpen && (
+                    <div className="p-3 space-y-2">
+                      <button
+                        type="button"
+                        onClick={translateAll}
+                        disabled={translatingAll || !descripcion}
+                        className="text-[11px] font-semibold text-primary hover:text-primary/80 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {translatingAll ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
+                        {translatingAll ? "Traduciendo..." : "Traducir todos"}
+                      </button>
+                      {IDIOMAS.map(({ code, label, flag }) => (
+                        <div key={code}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[11px] font-medium">{flag} {label}</span>
+                            {!translations[code] && (
+                              <button
+                                type="button"
+                                onClick={() => translateLang(code)}
+                                disabled={translatingLang === code || !descripcion}
+                                className="text-[10px] text-primary cursor-pointer disabled:opacity-50"
+                              >
+                                {translatingLang === code ? "..." : "Traducir"}
+                              </button>
+                            )}
+                            {translations[code] && <Check className="h-3 w-3 text-emerald-500" />}
+                          </div>
+                          {translations[code] && (
+                            <textarea
+                              value={translations[code]}
+                              onChange={(e) => setTranslations((prev) => ({ ...prev, [code]: e.target.value }))}
+                              rows={2}
+                              className="w-full border border-border/50 rounded px-2 py-1 text-[11px] bg-muted/30 resize-none"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Select id="tipo" name="tipo" label="Tipo" options={tipoOptions} defaultValue={inm.tipo} compact />
                   <Select id="operacion" name="operacion" label="Operacion" options={opOptions} defaultValue={inm.operacion} compact />
@@ -341,6 +522,43 @@ export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: Inmu
                 {inm.visitas.length === 0 && (
                   <p className="text-xs text-secondary text-center py-8">Sin visitas registradas</p>
                 )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal IA Preview */}
+      {aiModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-background rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" /> Descripción generada
+              </h3>
+              <button onClick={() => setAiModalOpen(false)} className="text-secondary hover:text-foreground cursor-pointer">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {aiGenerating ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-3">
+                  <RefreshCw className="h-6 w-6 text-primary animate-spin" />
+                  <p className="text-sm text-secondary">Generando descripción...</p>
+                </div>
+              ) : (
+                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{aiText}</p>
+              )}
+            </div>
+            {!aiGenerating && aiText && (
+              <div className="flex gap-2 p-4 border-t border-border">
+                <Button type="button" size="sm" variant="ghost" onClick={() => setAiModalOpen(false)}>Cancelar</Button>
+                <Button type="button" size="sm" variant="outline" onClick={generateAI} className="gap-1">
+                  <RefreshCw className="h-3.5 w-3.5" /> Regenerar
+                </Button>
+                <Button type="button" size="sm" onClick={useAIText} className="gap-1">
+                  <Check className="h-3.5 w-3.5" /> Usar esta
+                </Button>
               </div>
             )}
           </div>
