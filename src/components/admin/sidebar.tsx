@@ -15,6 +15,7 @@ import {
   Zap,
   Settings,
   LogOut,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useState } from "react";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/inmuebles", labelKey: "nav.properties", icon: Building2 },
   { href: "/comerciales", labelKey: "nav.agents", icon: UserCircle },
   { href: "/operaciones", labelKey: "nav.operations", icon: Handshake },
+  { href: "/proveedores", labelKey: "nav.suppliers", icon: Wrench },
   { href: "/calendario", labelKey: "nav.calendar", icon: CalendarDays },
   { href: "/inbox", labelKey: "nav.inbox", icon: Inbox },
   { href: "/automatizaciones", labelKey: "nav.automatizaciones", icon: Zap },

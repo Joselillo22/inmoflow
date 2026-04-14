@@ -60,7 +60,8 @@
     "inbox": "Inbox",
     "automatizaciones": "Automations",
     "settings": "Settings",
-    "kyc": "KYC / AML"
+    "kyc": "KYC / AML",
+    "suppliers": "Suppliers"
   },
   "dashboard": {
     "totalProperties": "Total properties",
@@ -335,5 +336,16 @@
     "es": "Spanish",
     "en": "English",
     "select": "Language"
+  },
+  "proveedores": {
+    "title": "Suppliers & Quotes",
+    "tab_proveedores": "Suppliers",
+    "tab_trabajos": "Jobs",
+    "tab_stats": "Statistics",
+    "nuevo_proveedor": "New supplier",
+    "nuevo_trabajo": "New job",
+    "enviar_solicitudes": "Send requests",
+    "sin_proveedores": "No suppliers registered",
+    "sin_trabajos": "No jobs created"
   }
 }

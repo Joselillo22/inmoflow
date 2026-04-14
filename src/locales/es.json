@@ -60,7 +60,8 @@
     "inbox": "Inbox",
     "automatizaciones": "Automatizaciones",
     "settings": "Ajustes",
-    "kyc": "KYC / PBC"
+    "kyc": "KYC / PBC",
+    "suppliers": "Proveedores"
   },
   "dashboard": {
     "totalProperties": "Total inmuebles",
@@ -335,5 +336,16 @@
     "es": "Espanol",
     "en": "Ingles",
     "select": "Idioma"
+  },
+  "proveedores": {
+    "title": "Proveedores y Presupuestos",
+    "tab_proveedores": "Proveedores",
+    "tab_trabajos": "Trabajos",
+    "tab_stats": "Estadísticas",
+    "nuevo_proveedor": "Nuevo proveedor",
+    "nuevo_trabajo": "Nuevo trabajo",
+    "enviar_solicitudes": "Enviar solicitudes",
+    "sin_proveedores": "No hay proveedores registrados",
+    "sin_trabajos": "No hay trabajos creados"
   }
 }

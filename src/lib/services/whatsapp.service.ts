@@ -91,3 +91,44 @@ export async function recordatorioVisita(
     text: `Recuerda tu visita hoy a las ${hora} en ${direccion}. ¡Te esperamos!`,
   });
 }
+
+
+// ─── Proveedores ────────────────────────────────────────
+
+export async function enviarSolicitudPresupuesto(
+  telefono: string,
+  nombreProveedor: string,
+  tituloTrabajo: string,
+  descripcion: string,
+  urlPortal: string,
+  fechaLimite: string,
+) {
+  const texto = `Hola ${nombreProveedor}, somos InmoFlow.\n\n`
+    + `Necesitamos presupuesto para:\n*${tituloTrabajo}*\n`
+    + (descripcion ? `${descripcion}\n\n` : `\n`)
+    + `Puedes ver los detalles y enviar tu presupuesto aquí:\n${urlPortal}\n\n`
+    + `Fecha límite: ${fechaLimite}\n\nGracias.`;
+
+  return enviarMensajeWhatsApp({
+    to: `34${telefono.replace(/\D/g, "")}`,
+    type: "text",
+    text: texto,
+  });
+}
+
+export async function enviarRecordatorioPresupuesto(
+  telefono: string,
+  nombreProveedor: string,
+  tituloTrabajo: string,
+  urlPortal: string,
+) {
+  const texto = `Hola ${nombreProveedor}, te recordamos que tenemos pendiente tu presupuesto para:\n`
+    + `*${tituloTrabajo}*\n\n`
+    + `Puedes enviarlo aquí:\n${urlPortal}\n\nGracias.`;
+
+  return enviarMensajeWhatsApp({
+    to: `34${telefono.replace(/\D/g, "")}`,
+    type: "text",
+    text: texto,
+  });
+}

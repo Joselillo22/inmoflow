@@ -76,3 +76,56 @@ export const ESTADO_OPERACION_LABELS: Record<string, string> = {
 
 export const COMISION_PCT_EMPRESA = 70;
 export const COMISION_PCT_COMERCIAL = 30;
+
+
+// ─── Proveedores ────────────────────────────────────────
+
+export const CATEGORIA_PROVEEDOR_LABELS: Record<string, string> = {
+  FONTANERIA: "Fontanería",
+  ELECTRICIDAD: "Electricidad",
+  PINTURA: "Pintura",
+  ALBANILERIA: "Albañilería",
+  CARPINTERIA: "Carpintería",
+  CERRAJERIA: "Cerrajería",
+  CLIMATIZACION: "Climatización",
+  LIMPIEZA: "Limpieza",
+  MUDANZAS: "Mudanzas",
+  CRISTALERIA: "Cristalería",
+  REFORMAS_INTEGRALES: "Reformas integrales",
+  JARDINERIA: "Jardinería",
+  OTRO: "Otro",
+};
+
+export const CATEGORIA_PROVEEDOR_COLORS: Record<string, string> = {
+  FONTANERIA: "bg-blue-100 text-blue-700",
+  ELECTRICIDAD: "bg-amber-100 text-amber-700",
+  PINTURA: "bg-pink-100 text-pink-700",
+  ALBANILERIA: "bg-orange-100 text-orange-700",
+  CARPINTERIA: "bg-yellow-100 text-yellow-800",
+  CERRAJERIA: "bg-slate-100 text-slate-700",
+  CLIMATIZACION: "bg-cyan-100 text-cyan-700",
+  LIMPIEZA: "bg-emerald-100 text-emerald-700",
+  MUDANZAS: "bg-indigo-100 text-indigo-700",
+  CRISTALERIA: "bg-sky-100 text-sky-700",
+  REFORMAS_INTEGRALES: "bg-violet-100 text-violet-700",
+  JARDINERIA: "bg-green-100 text-green-700",
+  OTRO: "bg-gray-100 text-gray-700",
+};
+
+export const ESTADO_TRABAJO_LABELS: Record<string, string> = {
+  BORRADOR: "Borrador",
+  ENVIADO: "Enviado",
+  EN_CURSO: "En curso",
+  ADJUDICADO: "Adjudicado",
+  COMPLETADO: "Completado",
+  CANCELADO: "Cancelado",
+};
+
+export const ESTADO_TRABAJO_COLORS: Record<string, string> = {
+  BORRADOR: "bg-slate-100 text-slate-600",
+  ENVIADO: "bg-blue-100 text-blue-700",
+  EN_CURSO: "bg-amber-100 text-amber-700",
+  ADJUDICADO: "bg-emerald-100 text-emerald-700",
+  COMPLETADO: "bg-green-100 text-green-700",
+  CANCELADO: "bg-red-100 text-red-700",
+};

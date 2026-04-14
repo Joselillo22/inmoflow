@@ -306,6 +306,7 @@ model Inmueble {
   matchings     Matching[]
   operaciones   Operacion[]
   informes      InformePropietario[]
+  trabajos      Trabajo[]
 
   @@index([comercialId])
   @@index([estado])
@@ -699,4 +700,138 @@ model AutomatizacionLog {
   @@index([automatizacionId])
   @@index([createdAt])
   @@map("automatizacion_logs")
+}
+
+
+// ═══════════════════════════════════════
+// PROVEEDORES Y PRESUPUESTOS
+// ═══════════════════════════════════════
+
+enum CategoriaProveedor {
+  FONTANERIA
+  ELECTRICIDAD
+  PINTURA
+  ALBANILERIA
+  CARPINTERIA
+  CERRAJERIA
+  CLIMATIZACION
+  LIMPIEZA
+  MUDANZAS
+  CRISTALERIA
+  REFORMAS_INTEGRALES
+  JARDINERIA
+  OTRO
+}
+
+enum EstadoTrabajo {
+  BORRADOR
+  ENVIADO
+  EN_CURSO
+  ADJUDICADO
+  COMPLETADO
+  CANCELADO
+}
+
+model Proveedor {
+  id              String               @id @default(cuid())
+  nombre          String
+  contacto        String?
+  telefono        String?
+  email           String?
+  categorias      CategoriaProveedor[]
+  valoracionMedia Float?               @default(0)
+  totalTrabajos   Int                  @default(0)
+  activo          Boolean              @default(true)
+  notas           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  solicitudes     SolicitudPresupuesto[]
+  accesos         ProveedorAcceso[]
+
+  @@index([activo])
+  @@map("proveedores")
+}
+
+model ProveedorAcceso {
+  id            String    @id @default(cuid())
+  proveedorId   String
+  token         String    @unique
+  expiresAt     DateTime
+  activo        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  proveedor     Proveedor @relation(fields: [proveedorId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([proveedorId])
+  @@map("proveedor_accesos")
+}
+
+model Trabajo {
+  id                String              @id @default(cuid())
+  referencia        String              @unique
+  titulo            String
+  descripcion       String?
+  categoria         CategoriaProveedor
+  inmuebleId        String?
+  estado            EstadoTrabajo       @default(BORRADOR)
+  fechaLimite       DateTime?
+  adjudicadoId      String?
+  importeAdjudicado Decimal?            @db.Decimal(10, 2)
+  notas             String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  inmueble          Inmueble?           @relation(fields: [inmuebleId], references: [id])
+  solicitudes       SolicitudPresupuesto[]
+  adjuntos          TrabajoAdjunto[]
+
+  @@index([estado])
+  @@index([categoria])
+  @@index([inmuebleId])
+  @@map("trabajos")
+}
+
+model TrabajoAdjunto {
+  id        String   @id @default(cuid())
+  trabajoId String
+  nombre    String
+  url       String
+  tipo      String
+  createdAt DateTime @default(now())
+
+  trabajo   Trabajo  @relation(fields: [trabajoId], references: [id], onDelete: Cascade)
+
+  @@index([trabajoId])
+  @@map("trabajo_adjuntos")
+}
+
+model SolicitudPresupuesto {
+  id                    String    @id @default(cuid())
+  trabajoId             String
+  proveedorId           String
+  enviadaAt             DateTime?
+  enviadaVia            String?
+  respondida            Boolean   @default(false)
+  respondidaAt          DateTime?
+  importe               Decimal?  @db.Decimal(10, 2)
+  detallePresupuesto    String?
+  documentoUrl          String?
+  seleccionada          Boolean   @default(false)
+  valoracion            Int?
+  comentarioValoracion  String?
+  recordatoriosEnviados Int       @default(0)
+  ultimoRecordatorio    DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  trabajo               Trabajo   @relation(fields: [trabajoId], references: [id], onDelete: Cascade)
+  proveedor             Proveedor @relation(fields: [proveedorId], references: [id])
+
+  @@unique([trabajoId, proveedorId])
+  @@index([trabajoId])
+  @@index([proveedorId])
+  @@index([respondida])
+  @@map("solicitudes_presupuesto")
 }
