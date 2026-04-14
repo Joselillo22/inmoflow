@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import {
-  ChevronLeft, ChevronRight, Plus, X, Eye, CheckSquare, Search,
+  ChevronLeft, ChevronRight, Plus, X, Eye, CheckSquare, Search, UserCircle,
 } from "lucide-react";
 import { formatTime } from "@/lib/utils/formatters";
 import { RESULTADO_VISITA_LABELS } from "@/lib/utils/constants";
@@ -40,6 +40,8 @@ export default function CalendarioPage() {
   const [showCrear, setShowCrear] = useState(false);
   const [crearDate, setCrearDate] = useState<Date>(new Date());
   const { toast } = useToast();
+  const [filterComercialId, setFilterComercialId] = useState("");
+  const [comercialesFilter, setComercialesFilter] = useState<ComercialOption[]>([]);
 
   // Create event form state
   const [crearTipo, setCrearTipo] = useState<"visita" | "tarea">("visita");
@@ -65,8 +67,8 @@ export default function CalendarioPage() {
     const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
 
     const [visitasRes, tareasRes] = await Promise.all([
-      fetch(`/api/visitas?desde=${start.toISOString()}&hasta=${end.toISOString()}`),
-      fetch("/api/tareas"),
+      fetch(`/api/visitas?desde=${start.toISOString()}&hasta=${end.toISOString()}${filterComercialId ? `&comercialId=${filterComercialId}` : ""}`),
+      fetch(`/api/tareas${filterComercialId ? `?comercialId=${filterComercialId}` : ""}`),
     ]);
 
     const calEvents: CalendarEvent[] = [];
@@ -101,7 +103,11 @@ export default function CalendarioPage() {
 
     setEvents(calEvents);
     setLoading(false);
-  }, [currentDate]);
+  }, [currentDate, filterComercialId]);
+
+  useEffect(() => {
+    fetch("/api/comerciales?limit=50").then((r) => r.json()).then((d) => setComercialesFilter(d.data ?? [])).catch(() => {});
+  }, []);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
@@ -368,6 +374,19 @@ export default function CalendarioPage() {
           <Button size="lg" className="gap-2" onClick={() => openCrearModal(currentDate)}>
             <Plus className="h-5 w-5" /> Nuevo evento
           </Button>
+          <div className="flex items-center gap-1.5 border border-border rounded-xl px-2.5 py-1.5 bg-white">
+            <UserCircle className="h-4 w-4 text-secondary" />
+            <select
+              value={filterComercialId}
+              onChange={(e) => setFilterComercialId(e.target.value)}
+              className="text-sm bg-transparent border-none outline-none cursor-pointer text-foreground pr-1"
+            >
+              <option value="">Todos los comerciales</option>
+              {comercialesFilter.map((c) => (
+                <option key={c.id} value={c.id}>{c.usuario.nombre} {c.usuario.apellidos}</option>
+              ))}
+            </select>
+          </div>
           <div className="flex border border-border rounded-xl overflow-hidden">
             {(["mes", "semana", "dia"] as ViewMode[]).map((mode) => (
               <button key={mode} onClick={() => setViewMode(mode)}
