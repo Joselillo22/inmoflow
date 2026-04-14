@@ -36,3 +36,12 @@ prisma/migrations/
 
 # PM2
 ecosystem.config.js
+
+# Logs de la app
+logs/
+
+# Backups de BD
+backups/
+
+# Uploads (fotos de inmuebles)
+public/uploads/

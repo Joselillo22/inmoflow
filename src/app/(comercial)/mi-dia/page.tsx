@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TaskList } from "@/components/comercial/task-list";
 import {
   CalendarCheck, Phone, ClipboardList, Building2,
-  MessageCircle, Clock,
+  MessageCircle, Clock, TrendingUp, TrendingDown, Target, ChevronRight,
 } from "lucide-react";
 import { formatTime, formatCurrency } from "@/lib/utils/formatters";
 
@@ -49,16 +49,26 @@ interface MiDiaData {
 
 export default function MiDiaPage() {
   const [data, setData] = useState<MiDiaData | null>(null);
+  const [miRend, setMiRend] = useState<{
+    mesActual: { leads: number; visitas: number; cierres: number };
+    mesAnterior: { leads: number; visitas: number; cierres: number };
+    variacion: { leads: number; visitas: number; cierres: number };
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const { data: session } = useSession();
   const { t } = useTranslation();
 
-  useEffect(() => {
-    fetch("/api/comercial")
-      .then((r) => r.json())
-      .then((res) => setData(res.data))
-      .finally(() => setLoading(false));
+  const fetchData = useCallback(() => {
+    Promise.all([
+      fetch("/api/comercial").then((r) => r.json()),
+      fetch("/api/comercial/rendimiento").then((r) => r.json()).catch(() => ({ data: null })),
+    ]).then(([miDiaRes, rendRes]) => {
+      setData(miDiaRes.data);
+      if (rendRes.data) setMiRend(rendRes.data);
+    }).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const nombre = session?.user?.name?.split(" ")[0] ?? "";
   const hora = new Date().getHours();
@@ -184,6 +194,60 @@ export default function MiDiaPage() {
 
       {/* Tareas */}
       {data.tareasPendientes.length > 0 && <TaskList tareas={data.tareasPendientes} />}
+
+      {/* Mi rendimiento */}
+      {miRend && (
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-3 pb-2.5 border-b border-border/40">
+            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Target className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <p className="text-sm font-semibold">Mi rendimiento</p>
+          </div>
+          <div className="p-4">
+            {/* Mini funnel */}
+            <div className="flex items-center justify-between text-center">
+              <div>
+                <p className="text-2xl font-bold text-foreground">{miRend.mesActual.leads}</p>
+                <p className="text-[10px] text-secondary">Leads</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-secondary" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{miRend.mesActual.visitas}</p>
+                <p className="text-[10px] text-secondary">Visitas</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-secondary" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{miRend.mesActual.cierres}</p>
+                <p className="text-[10px] text-secondary">Cierres</p>
+              </div>
+            </div>
+            {/* Comparativa con mes anterior */}
+            <div className="mt-3 pt-3 border-t border-border/40 space-y-1">
+              {miRend.variacion.visitas > 0 && (
+                <p className="text-sm text-emerald-600 flex items-center gap-1.5">
+                  <TrendingUp className="h-4 w-4" /> +{miRend.variacion.visitas} visitas vs mes anterior
+                </p>
+              )}
+              {miRend.variacion.visitas < 0 && (
+                <p className="text-sm text-secondary flex items-center gap-1.5">
+                  <TrendingDown className="h-4 w-4" /> {miRend.variacion.visitas} visitas vs mes anterior
+                </p>
+              )}
+              {miRend.variacion.cierres > 0 && (
+                <p className="text-sm text-emerald-600 flex items-center gap-1.5">
+                  <TrendingUp className="h-4 w-4" /> +{miRend.variacion.cierres} cierres vs mes anterior
+                </p>
+              )}
+              {miRend.variacion.leads !== 0 && miRend.variacion.visitas === 0 && miRend.variacion.cierres === 0 && (
+                <p className="text-sm text-secondary flex items-center gap-1.5">
+                  Mismo ritmo que el mes pasado
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mi cartera */}
       <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm overflow-hidden">
