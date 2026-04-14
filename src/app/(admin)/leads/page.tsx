@@ -12,6 +12,7 @@ import { LeadDetailSlideOver } from "@/components/admin/leads/lead-detail-slideo
 import { useToast } from "@/components/ui/toast";
 import {
   Search, Plus, Users, ChevronLeft, ChevronRight, X,
+  UserPlus, Phone, Eye, Handshake, TrendingUp, UserX,
 } from "lucide-react";
 import { formatDate, formatPhone } from "@/lib/utils/formatters";
 import { FASE_FUNNEL_LABELS, FUENTE_LEAD_LABELS } from "@/lib/utils/constants";
@@ -40,6 +41,8 @@ export default function LeadsPage() {
   const { toast } = useToast();
   const { t } = useTranslation();
 
+  const [kpis, setKpis] = useState({ total: 0, nuevos: 0, contactados: 0, visitaProg: 0, oferta: 0, sinAsignarCount: 0 });
+
   const fetchLeads = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
@@ -63,6 +66,33 @@ export default function LeadsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("sinAsignar") === "true") setSinAsignar(true);
+  }, []);
+
+  // Fetch KPI counts (independent of filters)
+  useEffect(() => {
+    fetch("/api/leads?limit=1")
+      .then((r) => r.json())
+      .then((d) => {
+        const t = d.total ?? 0;
+        setKpis((prev) => ({ ...prev, total: t }));
+      });
+    // Get counts by fase
+    Promise.all([
+      fetch("/api/leads?faseFunnel=NUEVO&limit=1").then((r) => r.json()),
+      fetch("/api/leads?faseFunnel=CONTACTADO&limit=1").then((r) => r.json()),
+      fetch("/api/leads?faseFunnel=VISITA_PROGRAMADA&limit=1").then((r) => r.json()),
+      fetch("/api/leads?faseFunnel=OFERTA&limit=1").then((r) => r.json()),
+      fetch("/api/leads?sinAsignar=true&limit=1").then((r) => r.json()),
+    ]).then(([nuevos, contactados, visita, oferta, sinAsg]) => {
+      setKpis({
+        total: kpis.total || nuevos.total + contactados.total,
+        nuevos: nuevos.total ?? 0,
+        contactados: contactados.total ?? 0,
+        visitaProg: visita.total ?? 0,
+        oferta: oferta.total ?? 0,
+        sinAsignarCount: sinAsg.total ?? 0,
+      });
+    });
   }, []);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
@@ -120,6 +150,64 @@ export default function LeadsPage() {
         <Button size="sm" className="gap-1.5">
           <Plus className="h-3.5 w-3.5" /> {t("leads.new")}
         </Button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-6 gap-3">
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+              <Users className="h-4 w-4 text-slate-500" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-foreground">{total}</p>
+          <p className="text-[10px] text-secondary">Total leads</p>
+        </div>
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <UserPlus className="h-4 w-4 text-blue-500" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-blue-600">{kpis.nuevos}</p>
+          <p className="text-[10px] text-secondary">Nuevos</p>
+        </div>
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <Phone className="h-4 w-4 text-emerald-500" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-emerald-600">{kpis.contactados}</p>
+          <p className="text-[10px] text-secondary">Contactados</p>
+        </div>
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+              <Eye className="h-4 w-4 text-amber-500" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-amber-600">{kpis.visitaProg}</p>
+          <p className="text-[10px] text-secondary">Visita prog.</p>
+        </div>
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
+              <Handshake className="h-4 w-4 text-violet-500" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-violet-600">{kpis.oferta}</p>
+          <p className="text-[10px] text-secondary">En oferta</p>
+        </div>
+        <div className={`rounded-2xl border shadow-sm p-4 ${kpis.sinAsignarCount > 0 ? "bg-orange-50/80 border-orange-200/60" : "bg-white/70 border-white/60"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${kpis.sinAsignarCount > 0 ? "bg-orange-100" : "bg-slate-100"}`}>
+              <UserX className={`h-4 w-4 ${kpis.sinAsignarCount > 0 ? "text-orange-500" : "text-slate-500"}`} />
+            </div>
+          </div>
+          <p className={`text-2xl font-bold ${kpis.sinAsignarCount > 0 ? "text-orange-600" : "text-foreground"}`}>{kpis.sinAsignarCount}</p>
+          <p className="text-[10px] text-secondary">Sin asignar</p>
+        </div>
       </div>
 
       {/* Filters */}
