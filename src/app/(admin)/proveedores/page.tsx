@@ -54,6 +54,7 @@ interface Solicitud {
   detallePresupuesto: string | null;
   documentoUrl: string | null;
   seleccionada: boolean;
+  valoracion: number | null;
   recordatoriosEnviados: number;
   proveedor: { id: string; nombre: string; telefono: string | null; valoracionMedia: number | null };
 }
@@ -90,7 +91,7 @@ function Stars({ rating, size = "sm" }: { rating: number | null; size?: "sm" | "
 
 // ─── Main Page ──────────────────────────────────────────
 export default function ProveedoresPage() {
-  const [tab, setTab] = useState<"proveedores" | "trabajos">("proveedores");
+  const [tab, setTab] = useState<"proveedores" | "trabajos" | "estadisticas">("proveedores");
   const { t } = useTranslation();
 
   return (
@@ -104,7 +105,7 @@ export default function ProveedoresPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-muted rounded-xl w-fit">
-        {(["proveedores", "trabajos"] as const).map((t2) => (
+        {(["proveedores", "trabajos", "estadisticas"] as const).map((t2) => (
           <button
             key={t2}
             onClick={() => setTab(t2)}
@@ -112,13 +113,14 @@ export default function ProveedoresPage() {
               tab === t2 ? "bg-background shadow-sm text-foreground" : "text-secondary hover:text-foreground"
             }`}
           >
-            {t2 === "proveedores" ? t("proveedores.tab_proveedores") : t("proveedores.tab_trabajos")}
+            {t2 === "proveedores" ? t("proveedores.tab_proveedores") : t2 === "trabajos" ? t("proveedores.tab_trabajos") : t("proveedores.tab_stats")}
           </button>
         ))}
       </div>
 
       {tab === "proveedores" && <ProveedoresTab />}
       {tab === "trabajos" && <TrabajosTab />}
+      {tab === "estadisticas" && <StatsTab />}
     </div>
   );
 }
@@ -499,7 +501,7 @@ function NuevoTrabajoModal({ onClose, onCreated }: { onClose: () => void; onCrea
 // SLIDEOVER: PROVEEDOR DETALLE
 // ═══════════════════════════════════════════════════════
 function ProveedorSlideover({ proveedorId, onClose, onUpdated }: { proveedorId: string; onClose: () => void; onUpdated: () => void }) {
-  const [data, setData] = useState<Proveedor & { solicitudes: { id: string; importe: number | null; respondida: boolean; seleccionada: boolean; trabajo: { referencia: string; titulo: string; estado: string } }[] } | null>(null);
+  const [data, setData] = useState<Proveedor & { solicitudes: { id: string; importe: number | null; respondida: boolean; seleccionada: boolean; valoracion: number | null; trabajo: { referencia: string; titulo: string; estado: string } }[] } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -572,6 +574,7 @@ function ProveedorSlideover({ proveedorId, onClose, onUpdated }: { proveedorId: 
                         <>
                           <p className="text-sm font-bold text-foreground">{s.importe ? formatCurrency(Number(s.importe)) : "—"}</p>
                           {s.seleccionada && <Badge size="sm" variant="success">Seleccionado</Badge>}
+                          {s.valoracion && <span className="text-[10px] text-amber-600 ml-1">{"★".repeat(s.valoracion)}</span>}
                         </>
                       ) : (
                         <Badge size="sm" variant="warning">Pendiente</Badge>
@@ -614,6 +617,19 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
   }
 
   const [registrandoId, setRegistrandoId] = useState<string | null>(null);
+  const [valorandoId, setValorandoId] = useState<string | null>(null);
+  const [valoracion, setValoracion] = useState(0);
+  const [comentarioVal, setComentarioVal] = useState("");
+
+  async function enviarValoracion(solicitudId: string) {
+    if (valoracion === 0) { toast("Selecciona una valoración", "warning"); return; }
+    const res = await fetch(`/api/trabajos/${trabajoId}/solicitudes/${solicitudId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ valoracion, comentarioValoracion: comentarioVal || undefined }),
+    });
+    if (res.ok) { toast("Valoración guardada", "success"); setValorandoId(null); fetchData(); onUpdated(); }
+  }
   const [regImporte, setRegImporte] = useState("");
   const [regDetalle, setRegDetalle] = useState("");
   const [regDocUrl, setRegDocUrl] = useState("");
@@ -755,6 +771,10 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold">{s.proveedor.nombre}</p>
                             {s.seleccionada && <Badge size="sm" variant="success">Seleccionado</Badge>}
+                          {s.seleccionada && !s.valoracion && data.estado === "ADJUDICADO" && (
+                            <button onClick={() => { setValorandoId(s.id); setValoracion(0); setComentarioVal(""); }} className="text-[10px] font-semibold text-amber-600 cursor-pointer ml-1">Valorar</button>
+                          )}
+                          {s.valoracion && <span className="text-[10px] text-amber-600 ml-1">{"★".repeat(s.valoracion)}</span>}
                           </div>
                           <p className="text-lg font-bold text-foreground">{formatCurrency(Number(s.importe ?? 0))}</p>
                         </div>
@@ -807,7 +827,7 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
                   <div className="space-y-2">
                     {pendientes.map((s) => {
                       const dias = Math.floor((Date.now() - new Date(s.enviadaAt!).getTime()) / 86400000);
-                      const waText = `Hola ${s.proveedor.nombre}, somos InmoFlow.%0A%0ANecesitamos presupuesto para:%0A*${data.titulo}*%0A${data.descripcion ?? ""}%0A%0A¿Podrías enviarnos tu presupuesto? Gracias.`;
+                      const waText = `Hola ${s.proveedor.nombre}, te recordamos que tenemos pendiente tu presupuesto para:%0A*${data.titulo}*%0A%0A¿Podrías enviárnoslo? Gracias.`;
                       const waUrl = s.proveedor.telefono
                         ? `https://wa.me/34${s.proveedor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(waText)}`
                         : null;
@@ -857,6 +877,39 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
             </div>
           )}
         </div>
+
+        {/* Modal valorar proveedor */}
+        {valorandoId && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-background rounded-2xl shadow-2xl w-full max-w-xs">
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h3 className="text-sm font-bold">Valorar proveedor</h3>
+                <button onClick={() => setValorandoId(null)} className="text-secondary hover:text-foreground cursor-pointer"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <button
+                      key={i}
+                      onClick={() => setValoracion(i)}
+                      className="cursor-pointer transition-transform hover:scale-110"
+                    >
+                      <Star className={`h-8 w-8 ${i <= valoracion ? "text-amber-500 fill-amber-500" : "text-slate-200"}`} />
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={comentarioVal}
+                  onChange={(e) => setComentarioVal(e.target.value)}
+                  rows={2}
+                  placeholder="Comentario (opcional)"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <Button onClick={() => enviarValoracion(valorandoId)} className="w-full">Guardar valoración</Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal registrar presupuesto */}
         {registrandoId && (
@@ -964,12 +1017,19 @@ function EnviarSolicitudesModal({ trabajoId, categoria, onClose, onSent }: { tra
     const trabajo = trabajoData.data;
 
     if (via === "whatsapp") {
-      // Abrir WhatsApp para cada proveedor seleccionado
       for (const prov of proveedores.filter((p) => selected.has(p.id) && p.telefono)) {
-        const portalUrl = `${window.location.origin}/portal/proveedor/PENDING`;
-        const texto = `Hola ${prov.nombre}, somos InmoFlow.\n\nNecesitamos presupuesto para:\n*${trabajo.titulo}*\n${trabajo.descripcion ?? ""}\n\nFecha límite: ${trabajo.fechaLimite ? new Date(trabajo.fechaLimite).toLocaleDateString("es-ES") : "Sin fecha límite"}\n\nGracias.`;
+        // Generar token portal para este proveedor
+        let portalUrl = "";
+        try {
+          const tokenRes = await fetch(`/api/proveedores/${prov.id}/token`, { method: "POST" });
+          if (tokenRes.ok) {
+            const tokenData = await tokenRes.json();
+            portalUrl = tokenData.data.url;
+          }
+        } catch { /* ignore */ }
+
+        const texto = `Hola ${prov.nombre}, somos InmoFlow.\n\nNecesitamos presupuesto para:\n*${trabajo.titulo}*\n${trabajo.descripcion ?? ""}\n\n${portalUrl ? `Puedes ver los detalles y enviar tu presupuesto aquí:\n${portalUrl}\n\n` : ""}Fecha límite: ${trabajo.fechaLimite ? new Date(trabajo.fechaLimite).toLocaleDateString("es-ES") : "Sin fecha límite"}\n\nGracias.`;
         window.open(`https://wa.me/34${prov.telefono!.replace(/\D/g, "")}?text=${encodeURIComponent(texto)}`, "_blank");
-        // Small delay between opening tabs
         await new Promise((r) => setTimeout(r, 500));
       }
     }
@@ -1060,6 +1120,109 @@ function EnviarSolicitudesModal({ trabajoId, categoria, onClose, onSent }: { tra
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {sending ? "Enviando..." : `Enviar a ${selected.size} proveedor${selected.size !== 1 ? "es" : ""}`}
           </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════
+// TAB ESTADÍSTICAS
+// ═══════════════════════════════════════════════════════
+function StatsTab() {
+  const [stats, setStats] = useState<{
+    totalProveedores: number;
+    solicitudesPendientes: number;
+    trabajosActivos: number;
+    tiempoMedioHoras: number;
+    gastoPorCategoria: { categoria: string; total: number; count: number }[];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/proveedores/stats").then((r) => r.json()).catch(() => ({ data: null })),
+      fetch("/api/proveedores?limit=100").then((r) => r.json()).catch(() => ({ data: [] })),
+    ]).then(([statsRes, provRes]) => {
+      setStats(statsRes.data);
+      setProveedores((provRes.data ?? []).filter((p: Proveedor) => p.totalTrabajos > 0).sort((a: Proveedor, b: Proveedor) => (b.valoracionMedia ?? 0) - (a.valoracionMedia ?? 0)));
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <div className="space-y-3"><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-40 rounded-xl" /></div>;
+  if (!stats) return <p className="text-sm text-secondary text-center py-8">Error cargando estadísticas</p>;
+
+  const maxGasto = Math.max(...stats.gastoPorCategoria.map((g) => g.total), 1);
+
+  return (
+    <div className="space-y-5">
+      {/* KPIs */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5 text-center">
+          <p className="text-3xl font-bold text-foreground">{stats.totalProveedores}</p>
+          <p className="text-xs text-secondary mt-1">Proveedores activos</p>
+        </div>
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5 text-center">
+          <p className="text-3xl font-bold text-amber-600">{stats.solicitudesPendientes}</p>
+          <p className="text-xs text-secondary mt-1">Presupuestos pendientes</p>
+        </div>
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5 text-center">
+          <p className="text-3xl font-bold text-blue-600">{stats.trabajosActivos}</p>
+          <p className="text-xs text-secondary mt-1">Trabajos activos</p>
+        </div>
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5 text-center">
+          <p className="text-3xl font-bold text-foreground">{stats.tiempoMedioHoras}h</p>
+          <p className="text-xs text-secondary mt-1">Tiempo medio respuesta</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* Gasto por categoría */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+          <h3 className="text-sm font-semibold mb-4">Gasto por categoría</h3>
+          {stats.gastoPorCategoria.length === 0 ? (
+            <p className="text-xs text-secondary text-center py-4">Sin datos aún</p>
+          ) : (
+            <div className="space-y-3">
+              {stats.gastoPorCategoria.sort((a, b) => b.total - a.total).map((g) => (
+                <div key={g.categoria}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-medium">{CATEGORIA_PROVEEDOR_LABELS[g.categoria]}</span>
+                    <span className="text-xs font-bold">{formatCurrency(g.total)} ({g.count})</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(g.total / maxGasto) * 100}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Ranking proveedores */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+          <h3 className="text-sm font-semibold mb-4">Proveedores más fiables</h3>
+          {proveedores.length === 0 ? (
+            <p className="text-xs text-secondary text-center py-4">Sin valoraciones aún</p>
+          ) : (
+            <div className="space-y-2.5">
+              {proveedores.slice(0, 8).map((p, i) => (
+                <div key={p.id} className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-secondary w-5">{i + 1}.</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{p.nombre}</p>
+                    <div className="flex items-center gap-2">
+                      <Stars rating={p.valoracionMedia} />
+                      <span className="text-[10px] text-secondary">{p.totalTrabajos} trabajos</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
