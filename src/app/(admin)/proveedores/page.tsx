@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import {
   Wrench, Search, Plus, Star, Phone, Mail, MessageCircle,
-  FileText, Clock, CheckCircle, Send, AlertTriangle,
+  FileText, Clock, CheckCircle, Send, AlertTriangle, FileDown, Upload,
   ChevronRight, X, Loader2,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
@@ -52,6 +52,7 @@ interface Solicitud {
   respondidaAt: string | null;
   importe: number | null;
   detallePresupuesto: string | null;
+  documentoUrl: string | null;
   seleccionada: boolean;
   recordatoriosEnviados: number;
   proveedor: { id: string; nombre: string; telefono: string | null; valoracionMedia: number | null };
@@ -612,19 +613,45 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
     if (res.ok) { toast("Proveedor seleccionado", "success"); fetchData(); onUpdated(); }
   }
 
-  async function registrarPresupuesto(solicitudId: string) {
-    const importeStr = prompt("Importe del presupuesto (€):");
-    if (!importeStr) return;
-    const importe = parseFloat(importeStr);
-    if (isNaN(importe) || importe <= 0) { toast("Importe inválido", "error"); return; }
-    const detalle = prompt("Detalle (opcional):") ?? "";
+  const [registrandoId, setRegistrandoId] = useState<string | null>(null);
+  const [regImporte, setRegImporte] = useState("");
+  const [regDetalle, setRegDetalle] = useState("");
+  const [regDocUrl, setRegDocUrl] = useState("");
+  const [regUploading, setRegUploading] = useState(false);
 
-    const res = await fetch(`/api/trabajos/${trabajoId}/solicitudes/${solicitudId}`, {
+  function abrirRegistrar(solicitudId: string) {
+    setRegistrandoId(solicitudId);
+    setRegImporte("");
+    setRegDetalle("");
+    setRegDocUrl("");
+  }
+
+  async function handleUploadDoc(files: FileList) {
+    setRegUploading(true);
+    const formData = new FormData();
+    formData.append("file", files[0]);
+    try {
+      const res = await fetch(`/api/trabajos/${trabajoId}/adjuntos`, { method: "POST", body: formData });
+      if (res.ok) {
+        const d = await res.json();
+        setRegDocUrl(d.data?.url ?? "");
+        toast("Documento subido", "success");
+      }
+    } catch { /* ignore */ }
+    setRegUploading(false);
+  }
+
+  async function confirmarRegistro() {
+    if (!registrandoId) return;
+    const importe = parseFloat(regImporte);
+    if (isNaN(importe) || importe <= 0) { toast("Importe inválido", "error"); return; }
+
+    const res = await fetch(`/api/trabajos/${trabajoId}/solicitudes/${registrandoId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ importe, detallePresupuesto: detalle || undefined }),
+      body: JSON.stringify({ importe, detallePresupuesto: regDetalle || undefined, documentoUrl: regDocUrl || undefined }),
     });
-    if (res.ok) { toast("Presupuesto registrado", "success"); fetchData(); onUpdated(); }
+    if (res.ok) { toast("Presupuesto registrado", "success"); setRegistrandoId(null); fetchData(); onUpdated(); }
   }
 
   if (loading || !data) return (
@@ -732,6 +759,11 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
                           <p className="text-lg font-bold text-foreground">{formatCurrency(Number(s.importe ?? 0))}</p>
                         </div>
                         {s.detallePresupuesto && <p className="text-xs text-secondary mt-1">{s.detallePresupuesto}</p>}
+                        {s.documentoUrl && (
+                          <a href={s.documentoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 cursor-pointer transition-colors">
+                            <FileDown className="h-3.5 w-3.5" /> Descargar presupuesto
+                          </a>
+                        )}
                         <div className="flex items-center gap-2 mt-2">
                           <Stars rating={s.proveedor.valoracionMedia} />
                           {!s.seleccionada && data.estado !== "ADJUDICADO" && (
@@ -800,7 +832,7 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
                               </a>
                             )}
                             <button
-                              onClick={() => registrarPresupuesto(s.id)}
+                              onClick={() => abrirRegistrar(s.id)}
                               className="flex-1 h-10 border border-border rounded-xl text-xs font-semibold text-foreground flex items-center justify-center gap-1.5 cursor-pointer hover:bg-muted transition-colors"
                             >
                               <CheckCircle className="h-4 w-4" /> Ya lo recibí
@@ -825,6 +857,60 @@ function TrabajoSlideover({ trabajoId, onClose, onUpdated }: { trabajoId: string
             </div>
           )}
         </div>
+
+        {/* Modal registrar presupuesto */}
+        {registrandoId && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm">
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h3 className="text-sm font-bold">Registrar presupuesto</h3>
+                <button onClick={() => setRegistrandoId(null)} className="text-secondary hover:text-foreground cursor-pointer"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold block mb-1">Importe (€) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={regImporte}
+                    onChange={(e) => setRegImporte(e.target.value)}
+                    placeholder="1850.00"
+                    className="w-full h-11 border border-border rounded-xl px-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold block mb-1">Detalle</label>
+                  <textarea
+                    value={regDetalle}
+                    onChange={(e) => setRegDetalle(e.target.value)}
+                    rows={2}
+                    placeholder="Incluye material, mano de obra..."
+                    className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold block mb-1">Documento (PDF, imagen)</label>
+                  {regDocUrl ? (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200">
+                      <FileDown className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xs text-emerald-700 font-medium flex-1">Documento adjunto</span>
+                      <button onClick={() => setRegDocUrl("")} className="text-xs text-red-500 cursor-pointer">Quitar</button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center gap-1.5 h-10 border border-dashed border-border rounded-xl text-xs text-secondary cursor-pointer hover:border-primary/40 hover:bg-primary/[0.02] transition-all">
+                      {regUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      {regUploading ? "Subiendo..." : "Subir archivo"}
+                      <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => e.target.files && handleUploadDoc(e.target.files)} />
+                    </label>
+                  )}
+                </div>
+                <Button onClick={confirmarRegistro} className="w-full gap-1.5">
+                  <CheckCircle className="h-4 w-4" /> Registrar presupuesto
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showEnviar && <EnviarSolicitudesModal trabajoId={data.id} categoria={data.categoria} onClose={() => setShowEnviar(false)} onSent={() => { setShowEnviar(false); fetchData(); onUpdated(); }} />}
       </div>
