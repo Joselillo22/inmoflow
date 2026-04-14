@@ -84,22 +84,22 @@ export function GlobalSearch() {
   const hasResults = results && (results.leads.length + results.inmuebles.length + results.propietarios.length) > 0;
 
   return (
-    <div ref={ref} className="relative hidden md:block">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
+    <div ref={ref} className="relative hidden md:flex">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
       <input
         type="text"
         value={query}
         onChange={(e) => handleChange(e.target.value)}
         onFocus={() => { if (results) setOpen(true); }}
         placeholder="Buscar leads, pisos, propietarios..."
-        className="h-8 w-64 rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm pl-8 pr-8 text-xs text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/30 focus:outline-none focus:w-80 transition-all"
+        className="h-9 w-80 rounded-xl border border-white/30 bg-white pl-9 pr-8 text-xs text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-white/40 focus:outline-none focus:w-96 transition-all shadow-sm"
       />
       {query ? (
-        <button onClick={() => { setQuery(""); setResults(null); setOpen(false); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 cursor-pointer">
+        <button onClick={() => { setQuery(""); setResults(null); setOpen(false); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
           <X className="h-3 w-3" />
         </button>
       ) : (
-        <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/30 font-mono">/</kbd>
+        <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 font-mono">/</kbd>
       )}
 
       {/* Results dropdown */}

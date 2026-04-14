@@ -37,8 +37,8 @@ export function Topbar() {
       <h1 className="text-sm font-semibold text-white">{pageLabel}</h1>
 
       <div className="flex-1" />
-
       <GlobalSearch />
+      <div className="flex-1" />
 
 
 
