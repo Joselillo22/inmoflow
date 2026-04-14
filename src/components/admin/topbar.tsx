@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Search } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { NotificationsDropdown } from "@/components/admin/notifications-dropdown";
 
@@ -36,16 +35,7 @@ export function Topbar() {
 
       <div className="flex-1" />
 
-      {/* Search */}
-      <div className="relative hidden md:flex">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
-        <input
-          type="text"
-          placeholder={t("common.searchPlaceholder")}
-          className="h-8 w-56 rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm pl-8 pr-3 text-xs text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/30 focus:outline-none transition-all"
-        />
-        <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/30 font-mono">/</kbd>
-      </div>
+
 
       {/* Language */}
       
