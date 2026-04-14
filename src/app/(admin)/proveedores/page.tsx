@@ -948,19 +948,42 @@ function EnviarSolicitudesModal({ trabajoId, categoria, onClose, onSent }: { tra
   async function handleSend() {
     if (selected.size === 0) { toast("Selecciona al menos un proveedor", "warning"); return; }
     setSending(true);
+
+    // Crear solicitudes (sin enviar por API, lo hacemos via wa.me)
     const res = await fetch(`/api/trabajos/${trabajoId}/solicitudes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ proveedorIds: Array.from(selected), enviar: via !== "manual", via }),
+      body: JSON.stringify({ proveedorIds: Array.from(selected), enviar: false, via: "manual" }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      toast(`Solicitudes enviadas a ${data.data.enviados} proveedores`, "success");
-      onSent();
-    } else {
-      toast("Error al enviar", "error");
+
+    if (!res.ok) { toast("Error al crear solicitudes", "error"); setSending(false); return; }
+
+    // Obtener detalles del trabajo para el mensaje
+    const trabajoRes = await fetch(`/api/trabajos/${trabajoId}`);
+    const trabajoData = await trabajoRes.json();
+    const trabajo = trabajoData.data;
+
+    if (via === "whatsapp") {
+      // Abrir WhatsApp para cada proveedor seleccionado
+      for (const prov of proveedores.filter((p) => selected.has(p.id) && p.telefono)) {
+        const portalUrl = `${window.location.origin}/portal/proveedor/PENDING`;
+        const texto = `Hola ${prov.nombre}, somos InmoFlow.\n\nNecesitamos presupuesto para:\n*${trabajo.titulo}*\n${trabajo.descripcion ?? ""}\n\nFecha límite: ${trabajo.fechaLimite ? new Date(trabajo.fechaLimite).toLocaleDateString("es-ES") : "Sin fecha límite"}\n\nGracias.`;
+        window.open(`https://wa.me/34${prov.telefono!.replace(/\D/g, "")}?text=${encodeURIComponent(texto)}`, "_blank");
+        // Small delay between opening tabs
+        await new Promise((r) => setTimeout(r, 500));
+      }
     }
+
+    // Marcar como enviadas
+    await fetch(`/api/trabajos/${trabajoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado: "ENVIADO" }),
+    });
+
+    toast(`Solicitudes creadas para ${selected.size} proveedores`, "success");
     setSending(false);
+    onSent();
   }
 
   return (

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC_API_ROUTES = ["/api/auth", "/api/whatsapp"];
+const PUBLIC_API_ROUTES = ["/api/auth", "/api/whatsapp", "/api/portal/proveedor"];
 
 function isPublicApiRoute(pathname: string): boolean {
   return PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route));
@@ -25,7 +25,8 @@ export async function middleware(req: NextRequest) {
     nextUrl.pathname.startsWith("/calendario") ||
     nextUrl.pathname.startsWith("/automatizaciones") ||
     nextUrl.pathname.startsWith("/inbox") ||
-    nextUrl.pathname.startsWith("/ajustes");
+    nextUrl.pathname.startsWith("/ajustes") ||
+    nextUrl.pathname.startsWith("/proveedores");
 
   const isComercialRoute =
     nextUrl.pathname.startsWith("/mi-dia") ||
@@ -38,7 +39,7 @@ export async function middleware(req: NextRequest) {
     if (isPublicApiRoute(nextUrl.pathname)) return NextResponse.next();
 
     // Cron endpoints with API key bypass
-    const cronPaths = ["/api/portales", "/api/automatizaciones/check", "/api/automatizaciones/seed", "/api/whatsapp/reminders", "/api/notificaciones/check", "/api/informes/generate"];
+    const cronPaths = ["/api/portales", "/api/automatizaciones/check", "/api/automatizaciones/seed", "/api/whatsapp/reminders", "/api/notificaciones/check", "/api/informes/generate", "/api/proveedores/recordatorios"];
     if (cronPaths.some((p) => nextUrl.pathname.startsWith(p))) {
       const apiKey = req.headers.get("x-api-key") || nextUrl.searchParams.get("key");
       if (apiKey && apiKey === process.env.PORTALES_API_KEY) return NextResponse.next();
@@ -58,6 +59,9 @@ export async function middleware(req: NextRequest) {
   }
 
   // --- Pages ---
+  // Portal público (proveedores) - no requiere auth
+  if (nextUrl.pathname.startsWith("/portal/")) return NextResponse.next();
+
   if (!token) {
     if (isLoginPage) return NextResponse.next();
     return NextResponse.redirect(new URL("/login", nextUrl));
