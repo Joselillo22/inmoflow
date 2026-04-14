@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -101,27 +102,27 @@ export default function MiDiaPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center">
+        <Link href="/agenda" className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95">
           <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
             <CalendarCheck className="h-5 w-5 text-primary" />
           </div>
           <p className="text-2xl font-bold">{data.resumen.citasHoy}</p>
           <p className="text-[10px] text-secondary leading-tight mt-0.5">{t("comercial.appointmentsToday")}</p>
-        </div>
-        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center">
+        </Link>
+        <Link href="/contactos" className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95">
           <div className="w-9 h-9 rounded-xl bg-warning/10 flex items-center justify-center mx-auto mb-2">
             <Phone className="h-5 w-5 text-warning" />
           </div>
           <p className="text-2xl font-bold">{data.resumen.llamadasPendientes}</p>
           <p className="text-[10px] text-secondary leading-tight mt-0.5">{t("comercial.calls")}</p>
-        </div>
-        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center">
+        </Link>
+        <a href="#tareas" className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95">
           <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center mx-auto mb-2">
             <ClipboardList className="h-5 w-5 text-success" />
           </div>
           <p className="text-2xl font-bold">{data.resumen.tareasPendientes}</p>
           <p className="text-[10px] text-secondary leading-tight mt-0.5">{t("comercial.tasks")}</p>
-        </div>
+        </a>
       </div>
 
       {/* Próxima cita */}
@@ -193,7 +194,7 @@ export default function MiDiaPage() {
       )}
 
       {/* Tareas */}
-      {data.tareasPendientes.length > 0 && <TaskList tareas={data.tareasPendientes} />}
+      {data.tareasPendientes.length > 0 && <div id="tareas"><TaskList tareas={data.tareasPendientes} /></div>}
 
       {/* Mi rendimiento */}
       {miRend && (
