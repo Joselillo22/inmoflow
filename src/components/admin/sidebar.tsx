@@ -26,6 +26,7 @@ const navItems = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
   { href: "/leads", labelKey: "nav.leads", icon: Users },
   { href: "/inmuebles", labelKey: "nav.properties", icon: Building2 },
+  { href: "/propietarios", labelKey: "nav.owners", icon: UserSquare2 },
   { href: "/comerciales", labelKey: "nav.agents", icon: UserCircle },
   { href: "/operaciones", labelKey: "nav.operations", icon: Handshake },
   { href: "/proveedores", labelKey: "nav.suppliers", icon: Wrench },
@@ -33,7 +34,6 @@ const navItems = [
   { href: "/inbox", labelKey: "nav.inbox", icon: Inbox },
   { href: "/automatizaciones", labelKey: "nav.automatizaciones", icon: Zap },
   { href: "/ajustes", labelKey: "nav.settings", icon: Settings },
-  { href: "/propietarios", labelKey: "nav.owners", icon: UserSquare2 },
 ];
 
 export function Sidebar() {
