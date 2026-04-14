@@ -33,6 +33,23 @@ export function LeadDetailSlideOver({ leadId, onClose, onLeadUpdated }: LeadDeta
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("actividad");
   const { toast } = useToast();
+  const [comerciales, setComerciales] = useState<{ id: string; usuario: { nombre: string; apellidos: string } }[] | null>(null);
+  const [selectedComercialId, setSelectedComercialId] = useState("");
+
+  async function handleAsignarComercial(comercialId: string) {
+    if (!leadId) return;
+    setSelectedComercialId(comercialId);
+    const res = await fetch(`/api/leads/${leadId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comercialId: comercialId || null }),
+    });
+    if (res.ok) {
+      toast(comercialId ? "Comercial asignado" : "Comercial desasignado", "success");
+      fetchLead();
+      onLeadUpdated?.();
+    }
+  }
 
   const fetchLead = useCallback(async () => {
     if (!leadId) return;
@@ -41,6 +58,7 @@ export function LeadDetailSlideOver({ leadId, onClose, onLeadUpdated }: LeadDeta
     if (res.ok) {
       const data = await res.json();
       setLead(data.data);
+      setSelectedComercialId(data.data.comercialId ?? "");
     }
     setLoading(false);
   }, [leadId]);
@@ -53,6 +71,10 @@ export function LeadDetailSlideOver({ leadId, onClose, onLeadUpdated }: LeadDeta
       setMatchings(data.data ?? []);
     }
   }, [leadId]);
+
+  useEffect(() => {
+    fetch("/api/comerciales?limit=50").then((r) => r.json()).then((d) => setComerciales(d.data ?? [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (leadId) {
@@ -256,15 +278,29 @@ export function LeadDetailSlideOver({ leadId, onClose, onLeadUpdated }: LeadDeta
                   </div>
                   <Textarea id="notas" name="notas" label="Notas" defaultValue={lead.notas ?? ""} />
 
-                  {lead.comercial && (
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted">
-                      <Avatar name={`${lead.comercial.usuario.nombre} ${lead.comercial.usuario.apellidos}`} size="sm" />
-                      <span className="text-xs font-medium text-foreground">
-                        {lead.comercial.usuario.nombre} {lead.comercial.usuario.apellidos}
-                      </span>
-                      <Badge size="sm" variant="info">Comercial</Badge>
-                    </div>
-                  )}
+                  {/* Comercial asignado / selector */}
+                  <div>
+                    <label className="text-xs font-medium text-foreground block mb-1.5">Comercial asignado</label>
+                    {!comerciales ? (
+                      <p className="text-xs text-secondary">Cargando...</p>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={selectedComercialId}
+                          onChange={(e) => handleAsignarComercial(e.target.value)}
+                          className="flex-1 h-9 border border-border rounded-lg px-2 text-xs bg-background cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                          <option value="">Sin asignar</option>
+                          {comerciales.map((c: { id: string; usuario: { nombre: string; apellidos: string } }) => (
+                            <option key={c.id} value={c.id}>{c.usuario.nombre} {c.usuario.apellidos}</option>
+                          ))}
+                        </select>
+                        {lead.comercial && (
+                          <Badge size="sm" variant="info">Asignado</Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex items-center justify-between pt-1">
                     <LeadPortalButton
