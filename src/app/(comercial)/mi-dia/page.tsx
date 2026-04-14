@@ -207,7 +207,7 @@ export default function MiDiaPage() {
           </div>
           <div className="p-4">
             {/* Mini funnel */}
-            <div className="flex items-center justify-between text-center">
+            <div className="flex items-center justify-evenly text-center">
               <div>
                 <p className="text-2xl font-bold text-foreground">{miRend.mesActual.leads}</p>
                 <p className="text-[10px] text-secondary">Leads</p>
