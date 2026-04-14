@@ -115,7 +115,7 @@ export function ComercialHeader() {
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 top-full mt-2 w-[320px] bg-card rounded-2xl shadow-xl border border-border z-50 overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-[320px] bg-card rounded-2xl shadow-xl border border-border z-50 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <p className="text-sm font-bold text-foreground">Notificaciones</p>
                 <div className="flex items-center gap-1">
