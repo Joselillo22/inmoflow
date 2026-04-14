@@ -23,7 +23,7 @@ interface CalendarEvent {
   resultado?: string;
 }
 
-interface LeadOption { id: string; nombre: string; apellidos: string | null; comercialId: string | null }
+interface LeadOption { id: string; nombre: string; apellidos: string | null; telefono: string | null; comercialId: string | null }
 interface InmuebleOption { id: string; titulo: string; referencia: string; comercialId: string | null }
 interface ComercialOption { id: string; usuario: { nombre: string; apellidos: string } }
 
@@ -55,6 +55,14 @@ export default function CalendarioPage() {
   const [selectedInmuebleId, setSelectedInmuebleId] = useState("");
   const [selectedComercialId, setSelectedComercialId] = useState("");
   const [visitaHora, setVisitaHora] = useState("10:00");
+
+  // Autocomplete search
+  const [leadSearch, setLeadSearch] = useState("");
+  const [leadFocused, setLeadFocused] = useState(false);
+  const [inmSearch, setInmSearch] = useState("");
+  const [inmFocused, setInmFocused] = useState(false);
+  const [comSearch, setComSearch] = useState("");
+  const [comFocused, setComFocused] = useState(false);
 
   // Tarea fields
   const [tareaTipo, setTareaTipo] = useState("LLAMAR");
@@ -132,6 +140,9 @@ export default function CalendarioPage() {
     setSelectedLeadId("");
     setSelectedInmuebleId("");
     setSelectedComercialId("");
+    setLeadSearch("");
+    setInmSearch("");
+    setComSearch("");
     setVisitaHora("10:00");
     setTareaDesc("");
     setTareaPrioridad(1);
@@ -459,26 +470,100 @@ export default function CalendarioPage() {
                       <label className="text-sm font-medium text-secondary block mb-1">Hora</label>
                       <input type="time" value={visitaHora} onChange={(e) => setVisitaHora(e.target.value)} className={inputClass} />
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="text-sm font-medium text-secondary block mb-1">Lead / Comprador *</label>
-                      <select value={selectedLeadId} onChange={(e) => setSelectedLeadId(e.target.value)} className={selectClass}>
-                        <option value="">Seleccionar lead...</option>
-                        {leads.map((l) => <option key={l.id} value={l.id}>{l.nombre} {l.apellidos ?? ""}</option>)}
-                      </select>
+                      <input
+                        type="text"
+                        value={leadSearch}
+                        onChange={(e) => { setLeadSearch(e.target.value); setSelectedLeadId(""); }}
+                        onFocus={() => setLeadFocused(true)}
+                        onBlur={() => setTimeout(() => setLeadFocused(false), 200)}
+                        placeholder="Buscar por nombre o telefono..."
+                        className={inputClass}
+                      />
+                      {leadFocused && leadSearch.length >= 1 && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {leads.filter((l) => {
+                            const q = leadSearch.toLowerCase();
+                            return `${l.nombre} ${l.apellidos ?? ""} ${l.telefono ?? ""}`.toLowerCase().includes(q);
+                          }).slice(0, 8).map((l) => (
+                            <div
+                              key={l.id}
+                              onMouseDown={() => { setSelectedLeadId(l.id); setLeadSearch(`${l.nombre} ${l.apellidos ?? ""}`); setLeadFocused(false); }}
+                              className="px-3 py-2 hover:bg-primary/5 cursor-pointer text-sm"
+                            >
+                              <span className="font-medium">{l.nombre} {l.apellidos ?? ""}</span>
+                              {l.telefono && <span className="text-xs text-secondary ml-2">{l.telefono}</span>}
+                            </div>
+                          ))}
+                          {leads.filter((l) => `${l.nombre} ${l.apellidos ?? ""} ${l.telefono ?? ""}`.toLowerCase().includes(leadSearch.toLowerCase())).length === 0 && (
+                            <p className="px-3 py-2 text-xs text-secondary">Sin resultados</p>
+                          )}
+                        </div>
+                      )}
+                      {selectedLeadId && <span className="absolute right-3 top-[38px] text-emerald-500 text-xs">✓</span>}
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="text-sm font-medium text-secondary block mb-1">Inmueble *</label>
-                      <select value={selectedInmuebleId} onChange={(e) => setSelectedInmuebleId(e.target.value)} className={selectClass}>
-                        <option value="">Seleccionar inmueble...</option>
-                        {inmuebles.map((i) => <option key={i.id} value={i.id}>{i.referencia} - {i.titulo}</option>)}
-                      </select>
+                      <input
+                        type="text"
+                        value={inmSearch}
+                        onChange={(e) => { setInmSearch(e.target.value); setSelectedInmuebleId(""); }}
+                        onFocus={() => setInmFocused(true)}
+                        onBlur={() => setTimeout(() => setInmFocused(false), 200)}
+                        placeholder="Buscar por referencia o titulo..."
+                        className={inputClass}
+                      />
+                      {inmFocused && inmSearch.length >= 1 && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {inmuebles.filter((i) => {
+                            const q = inmSearch.toLowerCase();
+                            return `${i.referencia} ${i.titulo}`.toLowerCase().includes(q);
+                          }).slice(0, 8).map((i) => (
+                            <div
+                              key={i.id}
+                              onMouseDown={() => { setSelectedInmuebleId(i.id); setInmSearch(`${i.referencia} - ${i.titulo}`); setInmFocused(false); }}
+                              className="px-3 py-2 hover:bg-primary/5 cursor-pointer text-sm"
+                            >
+                              <span className="text-xs font-mono text-secondary mr-1">{i.referencia}</span>
+                              <span className="font-medium">{i.titulo}</span>
+                            </div>
+                          ))}
+                          {inmuebles.filter((i) => `${i.referencia} ${i.titulo}`.toLowerCase().includes(inmSearch.toLowerCase())).length === 0 && (
+                            <p className="px-3 py-2 text-xs text-secondary">Sin resultados</p>
+                          )}
+                        </div>
+                      )}
+                      {selectedInmuebleId && <span className="absolute right-3 top-[38px] text-emerald-500 text-xs">✓</span>}
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="text-sm font-medium text-secondary block mb-1">Comercial *</label>
-                      <select value={selectedComercialId} onChange={(e) => setSelectedComercialId(e.target.value)} className={selectClass}>
-                        <option value="">Seleccionar comercial...</option>
-                        {comerciales.map((c) => <option key={c.id} value={c.id}>{c.usuario.nombre} {c.usuario.apellidos}</option>)}
-                      </select>
+                      <input
+                        type="text"
+                        value={comSearch}
+                        onChange={(e) => { setComSearch(e.target.value); setSelectedComercialId(""); }}
+                        onFocus={() => setComFocused(true)}
+                        onBlur={() => setTimeout(() => setComFocused(false), 200)}
+                        placeholder="Buscar comercial..."
+                        className={inputClass}
+                      />
+                      {comFocused && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {comerciales.filter((c) => {
+                            const q = comSearch.toLowerCase();
+                            return `${c.usuario.nombre} ${c.usuario.apellidos}`.toLowerCase().includes(q);
+                          }).slice(0, 8).map((c) => (
+                            <div
+                              key={c.id}
+                              onMouseDown={() => { setSelectedComercialId(c.id); setComSearch(`${c.usuario.nombre} ${c.usuario.apellidos}`); setComFocused(false); }}
+                              className="px-3 py-2 hover:bg-primary/5 cursor-pointer text-sm font-medium"
+                            >
+                              {c.usuario.nombre} {c.usuario.apellidos}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {selectedComercialId && <span className="absolute right-3 top-[38px] text-emerald-500 text-xs">✓</span>}
                     </div>
                   </>
                 ) : (
