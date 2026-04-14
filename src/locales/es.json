@@ -289,7 +289,8 @@
     "noContacts": "No tienes contactos asignados",
     "noProperties": "No tienes pisos asignados",
     "noVisits": "No tienes visitas programadas",
-    "errorLoading": "Error al cargar los datos"
+    "errorLoading": "Error al cargar los datos",
+    "fiscalCalc": "Calc. fiscal"
   },
   "portal": {
     "propietario": {

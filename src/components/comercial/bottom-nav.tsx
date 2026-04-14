@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Users, Building2, Calendar } from "lucide-react";
+import { CalendarCheck, Users, Building2, Calendar, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTranslation } from "react-i18next";
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/contactos", labelKey: "comercial.contacts", icon: Users },
   { href: "/pisos", labelKey: "comercial.myProperties", icon: Building2 },
   { href: "/agenda", labelKey: "comercial.agenda", icon: Calendar },
+  { href: "/calculadora-fiscal", labelKey: "comercial.fiscalCalc", icon: Calculator },
 ];
 
 export function BottomNav() {
