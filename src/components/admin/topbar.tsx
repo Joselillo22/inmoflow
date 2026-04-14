@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { LanguageSelector } from "@/components/shared/language-selector";
 import { NotificationsDropdown } from "@/components/admin/notifications-dropdown";
 
 const pathLabelKeys: Record<string, string> = {
@@ -49,8 +48,7 @@ export function Topbar() {
       </div>
 
       {/* Language */}
-      <LanguageSelector variant="topbar" />
-
+      
       {/* Notifications */}
       <NotificationsDropdown />
 

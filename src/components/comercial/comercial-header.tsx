@@ -4,7 +4,6 @@ import { signOut, useSession } from "next-auth/react";
 import { LogOut, Bell, Check, CheckCheck, UserPlus, Calendar, AlertTriangle, TrendingUp, ShieldAlert, Clock, X, ExternalLink } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { LanguageSelector } from "@/components/shared/language-selector";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
@@ -98,7 +97,6 @@ export function ComercialHeader() {
         <span className="text-sm font-bold text-foreground">InmoFlow</span>
       </div>
       <div className="flex items-center gap-2">
-        <LanguageSelector variant="mobile" />
 
         {/* Notificaciones */}
         <div ref={notifRef} className="relative">
