@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { NotificationsDropdown } from "@/components/admin/notifications-dropdown";
+import { GlobalSearch } from "@/components/admin/global-search";
 
 const pathLabelKeys: Record<string, string> = {
   "/dashboard": "nav.dashboard",
@@ -17,6 +18,8 @@ const pathLabelKeys: Record<string, string> = {
   "/automatizaciones": "nav.automatizaciones",
   "/ajustes": "nav.settings",
   "/kyc": "nav.kyc",
+  "/proveedores": "nav.suppliers",
+  "/propietarios": "nav.owners",
 };
 
 export function Topbar() {
@@ -34,6 +37,8 @@ export function Topbar() {
       <h1 className="text-sm font-semibold text-white">{pageLabel}</h1>
 
       <div className="flex-1" />
+
+      <GlobalSearch />
 
 
 
