@@ -69,7 +69,7 @@ export default function PisosPage() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold flex items-center gap-2">
@@ -93,8 +93,8 @@ export default function PisosPage() {
 
       {/* Lista */}
       {filtered.map((inm) => (
-        <Link key={inm.id} href={`/pisos/${inm.id}`}>
-          <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
+        <Link key={inm.id} href={`/pisos/${inm.id}`} className="block">
+          <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm overflow-hidden active:scale-[0.99] transition-transform mb-3">
             <div className="flex gap-3 p-3.5">
               {/* Thumbnail */}
               <div className="w-20 h-16 rounded-xl bg-gradient-to-br from-slate-200 to-slate-100 shrink-0 overflow-hidden flex items-center justify-center">

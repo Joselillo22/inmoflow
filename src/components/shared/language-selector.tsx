@@ -45,7 +45,7 @@ export function LanguageSelector({ variant = "topbar" }: LanguageSelectorProps) 
           {currentLang.label}
         </button>
         {open && (
-          <div className="absolute bottom-full left-0 mb-1 z-50 bg-white rounded-xl shadow-lg border border-border/50 p-1.5 min-w-[100px] animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-lg border border-border/50 p-1.5 min-w-[100px] animate-in fade-in zoom-in-95 duration-150">
             {languages.map((lang) => (
               <button
                 key={lang.code}
