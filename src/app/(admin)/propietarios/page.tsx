@@ -123,7 +123,7 @@ function PropietariosListTab() {
               <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center`}>
                 <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
               </div>
-              <span className="text-xs font-medium text-secondary">{kpi.label}</span>
+              <span className="text-sm font-medium text-secondary">{kpi.label}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">{kpi.value}</p>
           </div>
@@ -139,7 +139,7 @@ function PropietariosListTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("owners.search")}
-            className="w-full h-10 pl-9 pr-4 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="w-full h-10 pl-9 pr-4 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm"
           />
         </div>
         <select value={filterKyc} onChange={(e) => setFilterKyc(e.target.value as "")} className="h-10 border border-border rounded-xl px-3 text-sm bg-background cursor-pointer">
