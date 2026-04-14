@@ -18,7 +18,7 @@ async function _GET() {
         id: true, nombre: true, apellidos: true, telefono: true, email: true,
         dniNie: true, nacionalidad: true, kycVerificado: true, kycFecha: true,
         origenFondos: true, actividadPro: true, createdAt: true,
-        _count: { select: { inmuebles: true } },
+        _count: { select: { inmuebles: true, accesos: true } },
       },
       orderBy: { createdAt: "desc" },
     });

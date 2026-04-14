@@ -61,7 +61,8 @@
     "automatizaciones": "Automatizaciones",
     "settings": "Ajustes",
     "kyc": "KYC / PBC",
-    "suppliers": "Proveedores"
+    "suppliers": "Proveedores",
+    "owners": "Propietarios"
   },
   "dashboard": {
     "totalProperties": "Total inmuebles",
@@ -347,5 +348,29 @@
     "enviar_solicitudes": "Enviar solicitudes",
     "sin_proveedores": "No hay proveedores registrados",
     "sin_trabajos": "No hay trabajos creados"
+  },
+  "owners": {
+    "title": "Propietarios",
+    "tabOwners": "Propietarios",
+    "tabKyc": "KYC / PBC",
+    "new": "Nuevo propietario",
+    "total": "Total propietarios",
+    "withProperties": "Con inmuebles",
+    "kycVerified": "KYC verificados",
+    "withPortal": "Con acceso portal",
+    "search": "Buscar por nombre, telefono, email o DNI...",
+    "noOwners": "No hay propietarios registrados",
+    "portalTab": "Portal",
+    "reportsTab": "Informes",
+    "generateLink": "Generar enlace (30 dias)",
+    "sendWhatsApp": "Enviar por WhatsApp",
+    "copyLink": "Copiar enlace",
+    "revokeLink": "Revocar",
+    "generateReport": "Generar informe",
+    "downloadPdf": "Descargar PDF",
+    "noReports": "Sin informes generados",
+    "urgentKyc": "Verificacion pendiente",
+    "active": "Activo",
+    "expired": "Expirado"
   }
 }

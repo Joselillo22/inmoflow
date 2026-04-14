@@ -10,6 +10,8 @@ import { formatPhone } from "@/lib/utils/formatters";
 import { DatosKYCTab } from "./tabs/datos-kyc-tab";
 import { InmueblesPropietarioTab } from "./tabs/inmuebles-propietario-tab";
 import { OperacionesPropietarioTab } from "./tabs/operaciones-propietario-tab";
+import { PortalPropietarioTab } from "./tabs/portal-propietario-tab";
+import { InformesPropietarioTab } from "./tabs/informes-propietario-tab";
 import type { PropietarioDetail } from "@/lib/types/propietario";
 
 interface PropietarioDetailSlideOverProps {
@@ -57,6 +59,8 @@ export function PropietarioDetailSlideOver({ propietarioId, onClose, onUpdated }
     { id: "datos", label: "Datos / KYC" },
     { id: "inmuebles", label: "Inmuebles", count: prop._count.inmuebles },
     { id: "operaciones", label: "Operaciones", count: totalOps },
+    { id: "portal", label: "Portal" },
+    { id: "informes", label: "Informes" },
   ] : [];
 
   return (
@@ -115,6 +119,8 @@ export function PropietarioDetailSlideOver({ propietarioId, onClose, onUpdated }
             {activeTab === "datos" && <DatosKYCTab propietario={prop} onUpdated={handleUpdated} />}
             {activeTab === "inmuebles" && <InmueblesPropietarioTab inmuebles={prop.inmuebles} />}
             {activeTab === "operaciones" && <OperacionesPropietarioTab inmuebles={prop.inmuebles} kycVerificado={prop.kycVerificado} />}
+            {activeTab === "portal" && <PortalPropietarioTab propietarioId={prop.id} propietarioNombre={`${prop.nombre} ${prop.apellidos ?? ""}`} propietarioTelefono={prop.telefono} />}
+            {activeTab === "informes" && <InformesPropietarioTab propietarioId={prop.id} inmuebles={prop.inmuebles.map((i) => ({ id: i.id, titulo: i.titulo, referencia: i.referencia }))} />}
           </div>
         </>
       )}

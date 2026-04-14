@@ -11,7 +11,7 @@ export interface PropietarioListItem {
   origenFondos: string | null;
   actividadPro: string | null;
   createdAt: string;
-  _count: { inmuebles: number };
+  _count: { inmuebles: number; accesos: number };
 }
 
 export interface PropietarioInmueble {
@@ -53,5 +53,5 @@ export interface PropietarioDetail {
   createdAt: string;
   updatedAt: string;
   inmuebles: PropietarioInmueble[];
-  _count: { inmuebles: number };
+  _count: { inmuebles: number; accesos: number };
 }

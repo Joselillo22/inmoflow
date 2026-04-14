@@ -61,7 +61,8 @@
     "automatizaciones": "Automations",
     "settings": "Settings",
     "kyc": "KYC / AML",
-    "suppliers": "Suppliers"
+    "suppliers": "Suppliers",
+    "owners": "Owners"
   },
   "dashboard": {
     "totalProperties": "Total properties",
@@ -347,5 +348,29 @@
     "enviar_solicitudes": "Send requests",
     "sin_proveedores": "No suppliers registered",
     "sin_trabajos": "No jobs created"
+  },
+  "owners": {
+    "title": "Property Owners",
+    "tabOwners": "Owners",
+    "tabKyc": "KYC / AML",
+    "new": "New owner",
+    "total": "Total owners",
+    "withProperties": "With properties",
+    "kycVerified": "KYC verified",
+    "withPortal": "With portal access",
+    "search": "Search by name, phone, email or ID...",
+    "noOwners": "No owners registered",
+    "portalTab": "Portal",
+    "reportsTab": "Reports",
+    "generateLink": "Generate link (30 days)",
+    "sendWhatsApp": "Send via WhatsApp",
+    "copyLink": "Copy link",
+    "revokeLink": "Revoke",
+    "generateReport": "Generate report",
+    "downloadPdf": "Download PDF",
+    "noReports": "No reports generated",
+    "urgentKyc": "Verification pending",
+    "active": "Active",
+    "expired": "Expired"
   }
 }

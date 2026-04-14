@@ -16,6 +16,7 @@ import {
   Settings,
   LogOut,
   Wrench,
+  UserSquare2,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useState } from "react";
@@ -32,7 +33,7 @@ const navItems = [
   { href: "/inbox", labelKey: "nav.inbox", icon: Inbox },
   { href: "/automatizaciones", labelKey: "nav.automatizaciones", icon: Zap },
   { href: "/ajustes", labelKey: "nav.settings", icon: Settings },
-  { href: "/kyc", labelKey: "nav.kyc", icon: ShieldCheck },
+  { href: "/propietarios", labelKey: "nav.owners", icon: UserSquare2 },
 ];
 
 export function Sidebar() {
