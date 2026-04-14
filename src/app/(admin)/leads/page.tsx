@@ -160,8 +160,8 @@ export default function LeadsPage() {
               <Users className="h-4 w-4 text-slate-500" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-foreground">{total}</p>
-          <p className="text-[10px] text-secondary">Total leads</p>
+          <p className="text-4xl font-bold text-foreground">{total}</p>
+          <p className="text-sm text-secondary">Total leads</p>
         </div>
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -169,8 +169,8 @@ export default function LeadsPage() {
               <UserPlus className="h-4 w-4 text-blue-500" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-blue-600">{kpis.nuevos}</p>
-          <p className="text-[10px] text-secondary">Nuevos</p>
+          <p className="text-4xl font-bold text-blue-600">{kpis.nuevos}</p>
+          <p className="text-sm text-secondary">Nuevos</p>
         </div>
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -178,8 +178,8 @@ export default function LeadsPage() {
               <Phone className="h-4 w-4 text-emerald-500" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-emerald-600">{kpis.contactados}</p>
-          <p className="text-[10px] text-secondary">Contactados</p>
+          <p className="text-4xl font-bold text-emerald-600">{kpis.contactados}</p>
+          <p className="text-sm text-secondary">Contactados</p>
         </div>
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -187,8 +187,8 @@ export default function LeadsPage() {
               <Eye className="h-4 w-4 text-amber-500" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-amber-600">{kpis.visitaProg}</p>
-          <p className="text-[10px] text-secondary">Visita prog.</p>
+          <p className="text-4xl font-bold text-amber-600">{kpis.visitaProg}</p>
+          <p className="text-sm text-secondary">Visita prog.</p>
         </div>
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -196,8 +196,8 @@ export default function LeadsPage() {
               <Handshake className="h-4 w-4 text-violet-500" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-violet-600">{kpis.oferta}</p>
-          <p className="text-[10px] text-secondary">En oferta</p>
+          <p className="text-4xl font-bold text-violet-600">{kpis.oferta}</p>
+          <p className="text-sm text-secondary">En oferta</p>
         </div>
         <div className={`rounded-2xl border shadow-sm p-4 ${kpis.sinAsignarCount > 0 ? "bg-orange-50/80 border-orange-200/60" : "bg-white/70 border-white/60"}`}>
           <div className="flex items-center gap-2 mb-2">
@@ -205,8 +205,8 @@ export default function LeadsPage() {
               <UserX className={`h-4 w-4 ${kpis.sinAsignarCount > 0 ? "text-orange-500" : "text-slate-500"}`} />
             </div>
           </div>
-          <p className={`text-2xl font-bold ${kpis.sinAsignarCount > 0 ? "text-orange-600" : "text-foreground"}`}>{kpis.sinAsignarCount}</p>
-          <p className="text-[10px] text-secondary">Sin asignar</p>
+          <p className={`text-4xl font-bold ${kpis.sinAsignarCount > 0 ? "text-orange-600" : "text-foreground"}`}>{kpis.sinAsignarCount}</p>
+          <p className="text-sm text-secondary">Sin asignar</p>
         </div>
       </div>
 
