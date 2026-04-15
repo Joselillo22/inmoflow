@@ -62,7 +62,8 @@
     "settings": "Ajustes",
     "kyc": "KYC / PBC",
     "suppliers": "Proveedores",
-    "owners": "Propietarios"
+    "owners": "Propietarios",
+    "captacion": "Captación"
   },
   "dashboard": {
     "totalProperties": "Total inmuebles",
@@ -372,5 +373,9 @@
     "urgentKyc": "Verificacion pendiente",
     "active": "Activo",
     "expired": "Expirado"
+  },
+  "captacion": {
+    "title": "Captación",
+    "new": "Nueva oportunidad"
   }
 }

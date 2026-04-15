@@ -86,6 +86,7 @@ model Comercial {
   interacciones Interaccion[]
   operaciones   Operacion[]
   comisiones    Comision[]
+  captaciones   CaptacionOportunidad[]
 
   @@map("comerciales")
 }
@@ -839,4 +840,166 @@ model SolicitudPresupuesto {
   @@index([proveedorId])
   @@index([respondida])
   @@map("solicitudes_presupuesto")
+}
+
+// ═══════════════════════════════════════
+// CAPTACIÓN (FSBO — vendedores particulares)
+// ═══════════════════════════════════════
+
+enum FaseCaptacion {
+  NUEVA
+  CONTACTADA
+  VISITA_PROGRAMADA
+  VISITADA
+  VALORACION_PRESENTADA
+  PROPUESTA_MANDATO
+  MANDATO_FIRMADO
+  DESCARTADA
+}
+
+enum FuenteCaptacion {
+  IDEALISTA
+  FOTOCASA
+  MILANUNCIOS
+  WALLAPOP
+  CARTEL_CALLE
+  REFERIDO
+  WEB_PROPIA
+  PUERTA_FRIA
+  OTRO
+}
+
+enum TipoOperacionCaptacion {
+  VENTA
+  ALQUILER
+}
+
+model CaptacionOportunidad {
+  id                  String                 @id @default(cuid())
+
+  // Datos del anuncio
+  urlAnuncio          String?                @unique
+  portal              FuenteCaptacion
+  operacion           TipoOperacionCaptacion
+  fechaDeteccion      DateTime               @default(now())
+
+  // Inmueble extraído del anuncio
+  titulo              String?
+  descripcionOriginal String?
+  precio              Decimal?               @db.Decimal(12, 2)
+  direccionAproximada String?
+  localidad           String?
+  codigoPostal        String?
+  tipoInmueble        String?
+  habitaciones        Int?
+  banos               Int?
+  metrosConstruidos   Int?
+  planta              Int?
+  extras              Json?
+  fotos               Json?
+
+  // Propietario
+  nombrePropietario   String?
+  telefonoPropietario String?
+  emailPropietario    String?
+
+  // Pipeline
+  estado              FaseCaptacion          @default(NUEVA)
+  comercialId         String?
+  motivoDescarte      String?
+
+  // Fechas pipeline
+  fechaPrimerContacto DateTime?
+  fechaVisita         DateTime?
+  fechaValoracion     DateTime?
+  fechaPropuesta      DateTime?
+  fechaMandato        DateTime?
+
+  // Conversión a inmueble
+  inmuebleId          String?
+
+  // Deduplicación
+  posibleDuplicadoId  String?
+
+  // Notas + metadata
+  notas               String?
+  precioOriginal      Decimal?               @db.Decimal(12, 2)
+  historialPrecios    Json?
+  vecesDetectada      Int                    @default(1)
+  ultimaDeteccion     DateTime               @default(now())
+
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  comercial           Comercial?             @relation(fields: [comercialId], references: [id])
+
+  @@index([estado])
+  @@index([portal])
+  @@index([localidad])
+  @@index([comercialId])
+  @@index([operacion])
+  @@index([fechaDeteccion])
+  @@index([precio])
+  @@map("captacion_oportunidades")
+}
+
+model ConfiguracionCaptacion {
+  id                 String   @id @default("default")
+  scraperActivo      Boolean  @default(true)
+  idealista          Boolean  @default(true)
+  fotocasa           Boolean  @default(true)
+  milanuncios        Boolean  @default(true)
+  operacionVenta     Boolean  @default(true)
+  operacionAlquiler  Boolean  @default(true)
+  nombreInmo         String   @default("Entra y más")
+  telefonoAgente     String?
+  plantillaWhatsApp  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("configuracion_captacion")
+}
+
+model ComparablesMercado {
+  id                String   @id @default(cuid())
+
+  fuente            String
+  fuenteId          String?
+  urlAnuncio        String?  @unique
+
+  tipoInmueble      String
+  operacion         String
+  precio            Decimal  @db.Decimal(12, 2)
+  precioM2          Decimal? @db.Decimal(10, 2)
+  metrosConstruidos Int?
+  habitaciones      Int?
+  banos             Int?
+  planta            Int?
+  anoConstruccion   Int?
+
+  localidad         String
+  codigoPostal      String?
+  barrio            String?
+  latitud           Float?
+  longitud          Float?
+
+  garaje            Boolean  @default(false)
+  piscina           Boolean  @default(false)
+  terraza           Boolean  @default(false)
+  ascensor          Boolean  @default(false)
+  reformado         Boolean  @default(false)
+
+  esVentaReal       Boolean  @default(false)
+  esAnuncioActivo   Boolean  @default(true)
+  fechaPublicacion  DateTime?
+  fechaRetirada     DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([localidad, tipoInmueble, operacion])
+  @@index([codigoPostal])
+  @@index([precioM2])
+  @@index([latitud, longitud])
+  @@map("comparables_mercado")
 }

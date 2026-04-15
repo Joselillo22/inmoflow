@@ -7,10 +7,12 @@ import { UsuariosTab } from "@/components/admin/ajustes/tabs/usuarios-tab";
 import { PerfilTab } from "@/components/admin/ajustes/tabs/perfil-tab";
 import { IntegracionesTab } from "@/components/admin/ajustes/tabs/integraciones-tab";
 import { SistemaTab } from "@/components/admin/ajustes/tabs/sistema-tab";
+import { CaptacionTab } from "@/components/admin/ajustes/tabs/captacion-tab";
 
 const tabs = [
   { id: "usuarios", label: "Usuarios" },
   { id: "perfil", label: "Mi Perfil" },
+  { id: "captacion", label: "Captación" },
   { id: "integraciones", label: "Integraciones" },
   { id: "sistema", label: "Sistema" },
 ];
@@ -30,6 +32,7 @@ export default function AjustesPage() {
         <div>
           {activeTab === "usuarios" && <UsuariosTab />}
           {activeTab === "perfil" && <PerfilTab />}
+          {activeTab === "captacion" && <CaptacionTab />}
           {activeTab === "integraciones" && <IntegracionesTab />}
           {activeTab === "sistema" && <SistemaTab />}
         </div>

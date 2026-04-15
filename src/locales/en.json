@@ -62,7 +62,8 @@
     "settings": "Settings",
     "kyc": "KYC / AML",
     "suppliers": "Suppliers",
-    "owners": "Owners"
+    "owners": "Owners",
+    "captacion": "Acquisition"
   },
   "dashboard": {
     "totalProperties": "Total properties",
@@ -372,5 +373,9 @@
     "urgentKyc": "Verification pending",
     "active": "Active",
     "expired": "Expired"
+  },
+  "captacion": {
+    "title": "Captación",
+    "new": "Nueva oportunidad"
   }
 }

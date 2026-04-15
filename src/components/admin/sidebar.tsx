@@ -17,6 +17,7 @@ import {
   LogOut,
   Wrench,
   UserSquare2,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useState } from "react";
@@ -25,6 +26,7 @@ import { useTranslation } from "react-i18next";
 const navItems = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
   { href: "/leads", labelKey: "nav.leads", icon: Users },
+  { href: "/captacion", labelKey: "nav.captacion", icon: Target },
   { href: "/inmuebles", labelKey: "nav.properties", icon: Building2 },
   { href: "/propietarios", labelKey: "nav.owners", icon: UserSquare2 },
   { href: "/comerciales", labelKey: "nav.agents", icon: UserCircle },
