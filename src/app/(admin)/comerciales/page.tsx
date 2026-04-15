@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ComercialDetailSlideOver } from "@/components/admin/comerciales/comercial-detail-slideover";
+import { NuevoComercialModal } from "@/components/admin/comerciales/nuevo-comercial-modal";
 import { Search, Plus, UserCircle, MapPin, Phone } from "lucide-react";
 import { formatPhone, formatDate } from "@/lib/utils/formatters";
 import type { ComercialListItem } from "@/lib/types/comercial";
@@ -17,6 +18,7 @@ export default function ComercialesPage() {
   const [search, setSearch] = useState("");
   const [filterActivo, setFilterActivo] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showNuevo, setShowNuevo] = useState(false);
 
   const fetchComerciales = useCallback(async () => {
     setLoading(true);
@@ -46,7 +48,7 @@ export default function ComercialesPage() {
           <h1 className="text-2xl font-bold text-foreground">Comerciales</h1>
           <Badge variant="info" size="md">{comerciales.length}</Badge>
         </div>
-        <Button size="lg" className="gap-2">
+        <Button size="lg" className="gap-2" onClick={() => setShowNuevo(true)}>
           <Plus className="h-5 w-5" /> Nuevo comercial
         </Button>
       </div>
@@ -184,6 +186,7 @@ export default function ComercialesPage() {
       </div>
 
       {/* SlideOver */}
+      <NuevoComercialModal open={showNuevo} onClose={() => setShowNuevo(false)} onCreated={(id) => { setSelectedId(id); fetchComerciales(); }} />
       <ComercialDetailSlideOver
         comercialId={selectedId}
         onClose={() => setSelectedId(null)}
