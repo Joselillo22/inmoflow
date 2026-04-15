@@ -21,6 +21,9 @@ async function _GET() {
 
     const tareas = await prisma.tarea.findMany({
       where,
+      include: {
+        lead: { select: { id: true, nombre: true, apellidos: true, telefono: true } },
+      },
       orderBy: [{ completada: "asc" }, { prioridad: "desc" }, { fechaLimite: "asc" }],
     });
 

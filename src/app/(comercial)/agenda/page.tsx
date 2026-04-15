@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,8 @@ interface Tarea {
   completada: boolean;
   fechaLimite: string | null;
   completadaAt: string | null;
+  leadId: string | null;
+  lead: { id: string; nombre: string; apellidos: string | null; telefono: string | null } | null;
 }
 
 interface LeadOption { id: string; nombre: string; apellidos: string | null }
@@ -381,29 +384,61 @@ export default function AgendaPage() {
           <div className="space-y-2">
             {tareasPendDia.map((t) => {
               const prioColor = t.prioridad === 2 ? "border-l-red-500" : t.prioridad === 1 ? "border-l-amber-500" : "border-l-slate-300";
+              const tel = t.lead?.telefono;
               return (
-                <div key={t.id} className={`bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 border-l-4 ${prioColor} shadow-sm p-3.5 flex items-start gap-3`}>
-                  <button
-                    onClick={() => toggleTarea(t.id)}
-                    className="w-8 h-8 rounded-lg border-2 border-border flex items-center justify-center shrink-0 cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-colors"
-                    aria-label="Marcar completada"
-                  >
-                    <Circle className="h-4 w-4 text-transparent" />
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{t.descripcion}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-semibold text-secondary uppercase">{t.tipo.replace(/_/g, " ")}</span>
-                      {t.prioridad === 2 && <span className="text-[10px] font-bold text-red-500">URGENTE</span>}
-                      {t.prioridad === 1 && <span className="text-[10px] font-bold text-amber-500">ALTA</span>}
-                    </div>
+                <div key={t.id} className={`bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 border-l-4 ${prioColor} shadow-sm overflow-hidden`}>
+                  {/* Top: checkbox + content clickable to lead */}
+                  <div className="flex items-start gap-3 p-3.5">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleTarea(t.id); }}
+                      className="w-8 h-8 rounded-lg border-2 border-border flex items-center justify-center shrink-0 cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-colors"
+                      aria-label="Marcar completada"
+                    >
+                      <Circle className="h-4 w-4 text-transparent" />
+                    </button>
+                    {t.lead ? (
+                      <Link href={`/contactos/${t.lead.id}`} className="flex-1 min-w-0 cursor-pointer">
+                        <p className="text-sm font-semibold text-foreground">{t.lead.nombre} {t.lead.apellidos ?? ""}</p>
+                        <p className="text-sm text-foreground mt-0.5">{t.descripcion}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] font-semibold text-secondary uppercase">{t.tipo.replace(/_/g, " ")}</span>
+                          {t.prioridad === 2 && <span className="text-[10px] font-bold text-red-500">URGENTE</span>}
+                          {t.prioridad === 1 && <span className="text-[10px] font-bold text-amber-500">ALTA</span>}
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{t.descripcion}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] font-semibold text-secondary uppercase">{t.tipo.replace(/_/g, " ")}</span>
+                          {t.prioridad === 2 && <span className="text-[10px] font-bold text-red-500">URGENTE</span>}
+                          {t.prioridad === 1 && <span className="text-[10px] font-bold text-amber-500">ALTA</span>}
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleTarea(t.id); }}
+                      className="flex items-center gap-1 px-3 h-8 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors shrink-0"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Hecha
+                    </button>
                   </div>
-                  <button
-                    onClick={() => toggleTarea(t.id)}
-                    className="flex items-center gap-1 px-3 h-8 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors shrink-0"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Hecha
-                  </button>
+                  {/* Bottom: contact buttons if has phone */}
+                  {tel && (
+                    <div className="flex border-t border-border/40">
+                      <a href={`tel:${tel}`} className="flex-1">
+                        <button className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-secondary hover:text-foreground hover:bg-muted transition-colors cursor-pointer">
+                          <Phone className="h-3.5 w-3.5" /> Llamar
+                        </button>
+                      </a>
+                      <div className="w-px bg-border/40" />
+                      <a href={`https://wa.me/34${tel.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex-1">
+                        <button className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer">
+                          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                        </button>
+                      </a>
+                    </div>
+                  )}
                 </div>
               );
             })}
