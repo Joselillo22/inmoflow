@@ -38,6 +38,12 @@ export default function LeadsPage() {
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+
+  // Abrir slideover si viene ?id= en la URL (deep link desde calendario/notificaciones)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (id) setSelectedLeadId(id);
+  }, []);
   const [showNuevo, setShowNuevo] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();

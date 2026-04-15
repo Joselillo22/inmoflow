@@ -34,6 +34,12 @@ export default function InmueblesPage() {
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Abrir slideover si viene ?id= en la URL (deep link)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (id) setSelectedId(id);
+  }, []);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const { t } = useTranslation();
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,8 @@ interface CalendarEvent {
   resultado?: string;
   completada?: boolean;
   prioridad?: number;
+  leadId?: string | null;
+  inmuebleId?: string | null;
 }
 
 interface LeadOption { id: string; nombre: string; apellidos: string | null; telefono: string | null; comercialId: string | null }
@@ -34,6 +37,7 @@ const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", 
 type ViewMode = "mes" | "semana" | "dia";
 
 export default function CalendarioPage() {
+  const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -96,6 +100,8 @@ export default function CalendarioPage() {
           subtitulo: v.inmueble?.titulo ?? "", fecha: v.fecha, hora: formatTime(v.fecha),
           color: resultadoColors[v.resultado] ?? "bg-blue-500", resultado: v.resultado,
           completada: ["REALIZADA_INTERESADO", "REALIZADA_NO_INTERESADO"].includes(v.resultado),
+          leadId: v.leadId ?? v.lead?.id ?? null,
+          inmuebleId: v.inmuebleId ?? v.inmueble?.id ?? null,
         });
       }
     }
@@ -116,6 +122,8 @@ export default function CalendarioPage() {
           resultado: t.completada ? "COMPLETADA" : undefined,
           completada: t.completada,
           prioridad: t.prioridad,
+          leadId: t.leadId ?? t.lead?.id ?? null,
+          inmuebleId: t.inmuebleId ?? t.inmueble?.id ?? null,
         });
       }
     }
@@ -155,6 +163,14 @@ export default function CalendarioPage() {
       return ["CANCELADA", "NO_SHOW"].includes(ev.resultado ?? "");
     }
     return true;
+  }
+
+  function abrirEvento(ev: CalendarEvent) {
+    if (ev.leadId) {
+      router.push(`/leads?id=${ev.leadId}`);
+    } else if (ev.inmuebleId) {
+      router.push(`/inmuebles?id=${ev.inmuebleId}`);
+    }
   }
 
   function getEventsForDay(date: Date) {
@@ -326,8 +342,14 @@ export default function CalendarioPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {dayEvents.map((ev) => (
-              <div key={ev.id} className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card">
+            {dayEvents.map((ev) => {
+              const clickable = !!(ev.leadId || ev.inmuebleId);
+              return (
+              <div
+                key={ev.id}
+                onClick={clickable ? () => abrirEvento(ev) : undefined}
+                className={`flex items-start gap-3 p-4 rounded-xl border border-border bg-card transition-all ${clickable ? "cursor-pointer hover:border-primary hover:shadow-sm hover:-translate-y-0.5" : ""}`}
+              >
                 <div className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${ev.color}`} />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -343,9 +365,13 @@ export default function CalendarioPage() {
                   </div>
                   <p className="text-base font-semibold text-foreground">{ev.titulo}</p>
                   <p className="text-sm text-secondary">{ev.subtitulo}</p>
+                  {(ev.leadId || ev.inmuebleId) && (
+                    <p className="text-xs text-primary mt-1.5 font-medium">Click para abrir ficha →</p>
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
             <div className="pt-2">
               <Button variant="outline" size="sm" onClick={() => openCrearModal(currentDate)} className="gap-2">
                 <Plus className="h-4 w-4" /> Anadir otro evento
