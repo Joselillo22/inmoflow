@@ -15,6 +15,7 @@ import {
 import { formatCurrency } from "@/lib/utils/formatters";
 import { CaptacionSlideOver } from "@/components/admin/captacion/captacion-slideover";
 import { NuevaOportunidadModal } from "@/components/admin/captacion/nueva-oportunidad-modal";
+import { ScraperModal } from "@/components/admin/captacion/scraper-modal";
 
 const FASE_LABELS: Record<string, string> = {
   NUEVA: "Nueva",
@@ -106,6 +107,7 @@ export default function CaptacionPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showNueva, setShowNueva] = useState(false);
+  const [showScraper, setShowScraper] = useState(false);
   const [scraping, setScraping] = useState(false);
 
   const fetchItems = useCallback(async () => {
@@ -135,8 +137,8 @@ export default function CaptacionPage() {
   useEffect(() => { fetchItems(); }, [fetchItems]);
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  async function handleScraperRun() {
-    toast("El scraper se ejecutará cuando activemos Apify en la próxima fase", "info");
+  function handleScraperRun() {
+    setShowScraper(true);
   }
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -152,8 +154,8 @@ export default function CaptacionPage() {
           <Badge variant="info" size="md">{total}</Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={handleScraperRun} disabled={scraping}>
-            <RefreshCw className={`h-3.5 w-3.5 ${scraping ? "animate-spin" : ""}`} /> Ejecutar scraper
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={handleScraperRun} >
+            <RefreshCw className={`h-3.5 w-3.5 `} /> Ejecutar scraper
           </Button>
           <Button size="sm" className="gap-1.5" onClick={() => setShowNueva(true)}>
             <Plus className="h-3.5 w-3.5" /> Nueva oportunidad
@@ -334,6 +336,8 @@ export default function CaptacionPage() {
         onClose={() => setSelectedId(null)}
         onUpdated={() => { fetchItems(); fetchStats(); }}
       />
+
+      <ScraperModal open={showScraper} onClose={() => setShowScraper(false)} onFinished={() => { fetchItems(); fetchStats(); }} />
 
       <NuevaOportunidadModal
         open={showNueva}
