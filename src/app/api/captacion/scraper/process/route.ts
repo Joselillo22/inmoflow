@@ -5,6 +5,28 @@ import { withRateLimit } from "@/lib/rate-limit";
 import { getRun, getDatasetItems, normalizeRawItem } from "@/lib/services/apify-fsbo.service";
 import logger from "@/lib/logger";
 
+const PORTAL_DOMAINS: Record<string, string> = {
+  IDEALISTA: "https://www.idealista.com",
+  FOTOCASA: "https://www.fotocasa.es",
+  MILANUNCIOS: "https://www.milanuncios.com",
+};
+
+function absoluteUrl(url: string | undefined, portal: string): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith("http")) return url;
+  const domain = PORTAL_DOMAINS[portal];
+  if (!domain) return url;
+  return domain + (url.startsWith("/") ? url : "/" + url);
+}
+
+function detectarOperacionDesdeUrl(url: string | undefined): "VENTA" | "ALQUILER" | null {
+  if (!url) return null;
+  const lower = url.toLowerCase();
+  if (lower.includes("/alquiler") || lower.includes("/rent")) return "ALQUILER";
+  if (lower.includes("/venta") || lower.includes("/comprar") || lower.includes("/sale")) return "VENTA";
+  return null;
+}
+
 interface ProcessBody {
   runId: string;
   portal: "IDEALISTA" | "FOTOCASA" | "MILANUNCIOS";
@@ -48,6 +70,9 @@ async function _POST(req: NextRequest) {
 
     for (const raw of items) {
       const norm = normalizeRawItem(raw);
+
+      // Hacer URL absoluta
+      norm.urlAnuncio = absoluteUrl(norm.urlAnuncio, body.portal);
 
       // Solo particulares
       if (norm.esParticular === false) {
@@ -99,7 +124,9 @@ async function _POST(req: NextRequest) {
         }
       }
 
-      const operacion = body.operacion ?? (norm.tipoInmueble?.toLowerCase().includes("alquiler") ? "ALQUILER" : "VENTA");
+      const operacion = body.operacion
+        ?? detectarOperacionDesdeUrl(norm.urlAnuncio)
+        ?? (norm.tipoInmueble?.toLowerCase().includes("alquiler") ? "ALQUILER" : "VENTA");
 
       await prisma.captacionOportunidad.create({
         data: {
