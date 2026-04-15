@@ -157,6 +157,15 @@ async function _POST(req: NextRequest) {
       creadas++;
     }
 
+    // Auto-importar a tabla de comparables para el AVM
+    try {
+      const { importarDesdeCaptacion } = await import("@/lib/services/comparables.service");
+      const r = await importarDesdeCaptacion();
+      logger.info({ comparables: r }, "Comparables actualizados");
+    } catch (err) {
+      logger.error({ err }, "Error importando a comparables (no crítico)");
+    }
+
     // Notificar al admin
     const admins = await prisma.usuario.findMany({ where: { rol: "ADMIN" }, select: { id: true } });
     for (const a of admins) {

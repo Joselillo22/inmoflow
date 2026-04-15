@@ -39,7 +39,7 @@ export async function middleware(req: NextRequest) {
     if (isPublicApiRoute(nextUrl.pathname)) return NextResponse.next();
 
     // Cron endpoints with API key bypass
-    const cronPaths = ["/api/portales", "/api/automatizaciones/check", "/api/automatizaciones/seed", "/api/whatsapp/reminders", "/api/notificaciones/check", "/api/informes/generate", "/api/proveedores/recordatorios", "/api/captacion/scraper"];
+    const cronPaths = ["/api/portales", "/api/automatizaciones/check", "/api/automatizaciones/seed", "/api/whatsapp/reminders", "/api/notificaciones/check", "/api/informes/generate", "/api/proveedores/recordatorios", "/api/captacion/scraper", "/api/valoracion/importar"];
     if (cronPaths.some((p) => nextUrl.pathname.startsWith(p))) {
       const apiKey = req.headers.get("x-api-key") || nextUrl.searchParams.get("key");
       if (apiKey && apiKey === process.env.PORTALES_API_KEY) return NextResponse.next();

@@ -19,6 +19,7 @@ import { MapPin, BedDouble, Bath, Ruler, Building2, Calculator, Search, Loader2,
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { TIPO_INMUEBLE_LABELS, TIPO_OPERACION_LABELS, RESULTADO_VISITA_LABELS } from "@/lib/utils/constants";
 import type { InmuebleDetail } from "@/lib/types/inmueble";
+import { ValoracionResultCard, type ValoracionInput } from "@/components/admin/valoracion/valoracion-card";
 import { MapaInmueble } from "@/components/shared/MapaInmuebleDynamic";
 import { CalculadoraFiscalModal } from "./calculadora-fiscal-modal";
 
@@ -488,6 +489,32 @@ export function InmuebleDetailSlideOver({ inmuebleId, onClose, onUpdated }: Inmu
                     modo="full"
                   />
                 </div>
+
+                                {/* Valoración AVM */}
+                {inm.metrosConstruidos && inm.localidad && (
+                  <div className="border-t border-border pt-4 mt-4">
+                    <ValoracionResultCard
+                      input={{
+                        tipoInmueble: inm.tipo,
+                        operacion: inm.operacion === "VENTA" ? "venta" : "alquiler",
+                        localidad: inm.localidad,
+                        codigoPostal: inm.codigoPostal ?? undefined,
+                        metrosConstruidos: inm.metrosConstruidos,
+                        habitaciones: inm.habitaciones ?? undefined,
+                        banos: inm.banos ?? undefined,
+                        planta: inm.planta ?? undefined,
+                        anoConstruccion: inm.anoConst ?? undefined,
+                        latitud: inm.latitud ?? undefined,
+                        longitud: inm.longitud ?? undefined,
+                        garaje: !!inm.garaje,
+                        piscina: !!inm.piscina,
+                        terraza: !!inm.terraza,
+                        ascensor: !!inm.ascensor,
+                      } as ValoracionInput}
+                      precioReferencia={Number(inm.precio)}
+                    />
+                  </div>
+                )}
 
                 <Button type="submit" size="sm" className="mt-4">Guardar cambios</Button>
               </form>

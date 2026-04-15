@@ -14,6 +14,7 @@ import {
   MapPin, Euro, BedDouble, Ruler, Building2, Copy, Check, ChevronRight,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { ValoracionResultCard, type ValoracionInput } from "@/components/admin/valoracion/valoracion-card";
 
 const FASES = [
   { value: "NUEVA", label: "Nueva" },
@@ -459,6 +460,29 @@ export function CaptacionSlideOver({ oportunidadId, onClose, onUpdated }: Props)
                   </div>
                   <pre className="text-xs text-secondary whitespace-pre-wrap bg-muted/30 p-2 rounded-md max-h-32 overflow-y-auto">{construirMensaje()}</pre>
                 </div>
+
+                {/* Valoración AVM */}
+                {opp.metrosConstruidos && opp.localidad && opp.tipoInmueble && (
+                  <div className="pt-3 border-t border-border">
+                    <ValoracionResultCard
+                      input={{
+                        tipoInmueble: opp.tipoInmueble,
+                        operacion: opp.operacion === "VENTA" ? "venta" : "alquiler",
+                        localidad: opp.localidad,
+                        codigoPostal: opp.codigoPostal ?? undefined,
+                        metrosConstruidos: opp.metrosConstruidos,
+                        habitaciones: opp.habitaciones ?? undefined,
+                        banos: opp.banos ?? undefined,
+                        planta: opp.planta ?? undefined,
+                        garaje: !!(opp.extras as { garaje?: boolean } | null)?.garaje,
+                        piscina: !!(opp.extras as { piscina?: boolean } | null)?.piscina,
+                        terraza: !!(opp.extras as { terraza?: boolean } | null)?.terraza,
+                        ascensor: !!(opp.extras as { ascensor?: boolean } | null)?.ascensor,
+                      } as ValoracionInput}
+                      precioReferencia={opp.precio ? Number(opp.precio) : undefined}
+                    />
+                  </div>
+                )}
 
                 <div className="border-t border-border pt-3 space-y-2">
                   {/* Convertir a inmueble */}
