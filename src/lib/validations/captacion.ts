@@ -58,6 +58,7 @@ export const configuracionCaptacionSchema = z.object({
   nombreInmo: z.string().optional(),
   telefonoAgente: z.string().optional(),
   plantillaWhatsApp: z.string().optional(),
+  zonasActivas: z.array(z.string()).optional(),
 });
 
 export type CreateCaptacionInput = z.infer<typeof createCaptacionSchema>;

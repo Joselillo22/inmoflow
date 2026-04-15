@@ -53,9 +53,13 @@ async function _POST(req: NextRequest) {
     const runs: Record<string, unknown>[] = [];
     const errores: { portal: string; error: string }[] = [];
 
+    const zonas = (config?.zonasActivas && config.zonasActivas.length > 0)
+      ? config.zonasActivas
+      : ["alicante"];
+
     for (const portal of portalesValidos) {
       try {
-        const lanzados = await lanzarScraping({ portal: portal as "MILANUNCIOS", operaciones });
+        const lanzados = await lanzarScraping({ portal: portal as "MILANUNCIOS", operaciones, zonas });
         for (const run of lanzados) {
           runs.push({ portal, runId: run.id, status: run.status, actorId: run.actorId });
         }

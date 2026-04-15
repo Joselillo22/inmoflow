@@ -954,6 +954,7 @@ model ConfiguracionCaptacion {
   nombreInmo         String   @default("Entra y más")
   telefonoAgente     String?
   plantillaWhatsApp  String?
+  zonasActivas       String[] @default(["alicante", "elche", "santa-pola", "san-juan-de-alicante", "el-campello", "san-vicente-del-raspeig", "mutxamel"])
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

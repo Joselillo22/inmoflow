@@ -81,32 +81,43 @@ export function buildInputsFor(
   portal: "IDEALISTA" | "FOTOCASA" | "MILANUNCIOS",
   operaciones: ("VENTA" | "ALQUILER")[],
   maxItems = 100,
-  location = "alicante"
+  zonas: string[] = ["alicante"]
 ): object[] {
   const actorId = actorIdFor(portal) ?? "";
   const urls = operaciones.map((op) => SEARCH_URLS[portal][op]);
 
   // igolaizola/idealista-scraper — operation="sale"|"rent", location, propertyType, country
-  // Lanza 1 run por operación (sale/rent no se pueden mezclar)
+  // Lanza 1 run por (zona × operación)
   if (actorId.includes("igolaizola") && actorId.includes("idealista")) {
-    return operaciones.map((op) => ({
-      location,
-      country: "es",
-      operation: op === "VENTA" ? "sale" : "rent",
-      propertyType: "homes",
-      maxItems,
-      publishedBy: "particular",
-    }));
+    const inputs: object[] = [];
+    for (const zona of zonas) {
+      for (const op of operaciones) {
+        inputs.push({
+          location: zona,
+          country: "es",
+          operation: op === "VENTA" ? "sale" : "rent",
+          propertyType: "homes",
+          maxItems,
+        });
+      }
+    }
+    return inputs;
   }
 
   // igolaizola/fotocasa-scraper — operation="buy"|"rent", location, propertyType
   if (actorId.includes("igolaizola") && actorId.includes("fotocasa")) {
-    return operaciones.map((op) => ({
-      location,
-      operation: op === "VENTA" ? "buy" : "rent",
-      propertyType: "home",
-      maxItems,
-    }));
+    const inputs: object[] = [];
+    for (const zona of zonas) {
+      for (const op of operaciones) {
+        inputs.push({
+          location: zona,
+          operation: op === "VENTA" ? "buy" : "rent",
+          propertyType: "home",
+          maxItems,
+        });
+      }
+    }
+    return inputs;
   }
 
   // zen-studio/milanuncios-scraper (paid) → usa startUrls o search query
@@ -311,12 +322,14 @@ export function normalizeRawItem(raw: Record<string, unknown>): NormalizedItem {
 export interface ScraperRunConfig {
   portal: "IDEALISTA" | "FOTOCASA" | "MILANUNCIOS";
   operaciones: ("VENTA" | "ALQUILER")[];
+  zonas?: string[];
 }
 
 export async function lanzarScraping(config: ScraperRunConfig): Promise<ApifyRunSummary[]> {
   const actorId = actorIdFor(config.portal);
   if (!actorId) throw new Error(`Actor ID no configurado para ${config.portal}`);
-  const inputs = buildInputsFor(config.portal, config.operaciones);
+  const zonas = config.zonas && config.zonas.length > 0 ? config.zonas : ["alicante"];
+  const inputs = buildInputsFor(config.portal, config.operaciones, 100, zonas);
   const runs: ApifyRunSummary[] = [];
   for (const input of inputs) {
     logger.info({ portal: config.portal, actorId, input }, "Lanzando scraper Apify");

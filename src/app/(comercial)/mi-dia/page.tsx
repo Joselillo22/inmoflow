@@ -8,10 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskList } from "@/components/comercial/task-list";
-import {
-  CalendarCheck, Phone, ClipboardList, Building2,
-  MessageCircle, Clock, TrendingUp, TrendingDown, Target, ChevronRight,
-} from "lucide-react";
+import { CalendarCheck, Phone, ClipboardList, Building2,
+  MessageCircle, Clock, TrendingUp, TrendingDown, Target, ChevronRight, Calculator } from "lucide-react";
 import { formatTime, formatCurrency } from "@/lib/utils/formatters";
 
 interface MiDiaData {
@@ -124,6 +122,20 @@ export default function MiDiaPage() {
           <p className="text-[10px] text-secondary leading-tight mt-0.5">{t("comercial.tasks")}</p>
         </a>
       </div>
+
+      {/* Valorar piso rápido */}
+      <Link href="/valorar" className="block rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
+            <Calculator className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">Valorar inmueble al momento</p>
+            <p className="text-[11px] text-secondary">Estimación de precio de mercado con 1 click</p>
+          </div>
+          <span className="text-primary text-xl">→</span>
+        </div>
+      </Link>
 
       {/* Próxima cita */}
       {data.proximaCita && (

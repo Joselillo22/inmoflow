@@ -17,7 +17,21 @@ interface Config {
   nombreInmo: string;
   telefonoAgente: string | null;
   plantillaWhatsApp: string | null;
+  zonasActivas: string[];
 }
+
+const ZONAS_DISPONIBLES = [
+  { key: "alicante", label: "Alicante" },
+  { key: "san-juan-de-alicante", label: "San Juan de Alicante" },
+  { key: "el-campello", label: "El Campello" },
+  { key: "mutxamel", label: "Mutxamel" },
+  { key: "san-vicente-del-raspeig", label: "San Vicente del Raspeig" },
+  { key: "santa-pola", label: "Santa Pola" },
+  { key: "elche", label: "Elche (Elx)" },
+  { key: "crevillente", label: "Crevillente" },
+  { key: "aspe", label: "Aspe" },
+  { key: "jijona", label: "Jijona (Xixona)" },
+];
 
 export function CaptacionTab() {
   const { toast } = useToast();
@@ -89,6 +103,37 @@ export function CaptacionTab() {
               <span className={`text-sm font-medium ${color}`}>{label}</span>
             </label>
           ))}
+        </div>
+      </div>
+
+      {/* Zonas */}
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-foreground">Zonas a escanear</p>
+          <span className="text-xs text-secondary">{config.zonasActivas?.length ?? 0} seleccionadas</span>
+        </div>
+        <p className="text-xs text-secondary">Cada zona multiplica el número de runs Apify (N_zonas × operaciones × portales). Marca solo las que te interesen.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {ZONAS_DISPONIBLES.map(({ key, label }) => {
+            const active = (config.zonasActivas ?? []).includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  const zonas = config.zonasActivas ?? [];
+                  if (active) update("zonasActivas", zonas.filter((z) => z !== key));
+                  else update("zonasActivas", [...zonas, key]);
+                }}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg border text-left text-sm transition-colors cursor-pointer ${
+                  active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
+                }`}
+              >
+                <span className={active ? "font-medium text-foreground" : "text-secondary"}>{label}</span>
+                {active && <span className="text-primary">✓</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
