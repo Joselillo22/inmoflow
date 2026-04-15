@@ -54,8 +54,10 @@ async function _POST(req: NextRequest) {
 
     for (const portal of portalesValidos) {
       try {
-        const run = await lanzarScraping({ portal: portal as "MILANUNCIOS", operaciones });
-        runs.push({ portal, runId: run.id, status: run.status, actorId: run.actorId });
+        const lanzados = await lanzarScraping({ portal: portal as "MILANUNCIOS", operaciones });
+        for (const run of lanzados) {
+          runs.push({ portal, runId: run.id, status: run.status, actorId: run.actorId });
+        }
       } catch (error) {
         const msg = (error as Error).message;
         logger.error({ portal, err: error }, "Error lanzando actor");

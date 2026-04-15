@@ -60,29 +60,54 @@ export function actorIdFor(portal: "IDEALISTA" | "FOTOCASA" | "MILANUNCIOS"): st
   return map[portal] ?? null;
 }
 
-export function defaultInputFor(portal: "IDEALISTA" | "FOTOCASA" | "MILANUNCIOS", operaciones: ("VENTA" | "ALQUILER")[]): object {
-  const SEARCH_URLS: Record<string, { VENTA: string; ALQUILER: string }> = {
-    IDEALISTA: {
-      VENTA: "https://www.idealista.com/venta-viviendas/alicante-provincia/con-publicado_particular/",
-      ALQUILER: "https://www.idealista.com/alquiler-viviendas/alicante-provincia/con-publicado_particular/",
-    },
-    FOTOCASA: {
-      VENTA: "https://www.fotocasa.es/es/comprar/viviendas/alicante-provincia/todas-las-zonas/l?publicadores=particulares",
-      ALQUILER: "https://www.fotocasa.es/es/alquiler/viviendas/alicante-provincia/todas-las-zonas/l?publicadores=particulares",
-    },
-    MILANUNCIOS: {
-      VENTA: "https://www.milanuncios.com/pisos-en-alicante/?fromSearch=1&vendedor=particular",
-      ALQUILER: "https://www.milanuncios.com/alquiler-de-pisos-en-alicante/?fromSearch=1&vendedor=particular",
-    },
-  };
-  const urls: string[] = [];
-  for (const op of operaciones) urls.push(SEARCH_URLS[portal][op]);
-  return {
+const SEARCH_URLS: Record<string, { VENTA: string; ALQUILER: string }> = {
+  IDEALISTA: {
+    VENTA: "https://www.idealista.com/venta-viviendas/alicante-provincia/con-publicado_particular/",
+    ALQUILER: "https://www.idealista.com/alquiler-viviendas/alicante-provincia/con-publicado_particular/",
+  },
+  FOTOCASA: {
+    VENTA: "https://www.fotocasa.es/es/comprar/viviendas/alicante-provincia/todas-las-zonas/l?publicadores=particulares",
+    ALQUILER: "https://www.fotocasa.es/es/alquiler/viviendas/alicante-provincia/todas-las-zonas/l?publicadores=particulares",
+  },
+  MILANUNCIOS: {
+    VENTA: "https://www.milanuncios.com/pisos-en-alicante/?fromSearch=1&vendedor=particular",
+    ALQUILER: "https://www.milanuncios.com/alquiler-de-pisos-en-alicante/?fromSearch=1&vendedor=particular",
+  },
+};
+
+// Algunos actors toman un solo startUrl (fotocasa) — en ese caso hay que lanzar
+// un run por cada operación. Esta función devuelve N inputs (N=1 o N=operaciones.length).
+export function buildInputsFor(portal: "IDEALISTA" | "FOTOCASA" | "MILANUNCIOS", operaciones: ("VENTA" | "ALQUILER")[], maxItems = 100): object[] {
+  const actorId = actorIdFor(portal) ?? "";
+  const urls = operaciones.map((op) => SEARCH_URLS[portal][op]);
+
+  // dz_omar/idealista-scraper-api → Property_urls array + desiredResults
+  if (actorId.includes("idealista-scraper-api") || actorId.includes("dz_omar")) {
+    return [{
+      Property_urls: urls.map((url) => ({ url })),
+      desiredResults: maxItems,
+    }];
+  }
+
+  // azzouzana/fotocasa-...-ppr → startUrl (single) + maxItems → un run por URL
+  if (actorId.includes("fotocasa") && actorId.includes("ppr")) {
+    return urls.map((url) => ({ startUrl: url, maxItems }));
+  }
+
+  // memo23/idealista-scraper — formato similar al generic
+  if (actorId.includes("memo23")) {
+    return [{
+      startUrls: urls.map((url) => ({ url })),
+      maxItems,
+    }];
+  }
+
+  // Formato genérico por defecto (startUrls array + maxItems)
+  return [{
     startUrls: urls.map((url) => ({ url })),
-    maxItems: 500,
+    maxItems,
     fetchDetails: true,
-    extendOutputFunction: "($) => ({})",
-  };
+  }];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -193,10 +218,15 @@ export interface ScraperRunConfig {
   operaciones: ("VENTA" | "ALQUILER")[];
 }
 
-export async function lanzarScraping(config: ScraperRunConfig): Promise<ApifyRunSummary> {
+export async function lanzarScraping(config: ScraperRunConfig): Promise<ApifyRunSummary[]> {
   const actorId = actorIdFor(config.portal);
   if (!actorId) throw new Error(`Actor ID no configurado para ${config.portal}`);
-  const input = defaultInputFor(config.portal, config.operaciones);
-  logger.info({ portal: config.portal, actorId, input }, "Lanzando scraper Apify");
-  return await runActor(actorId, input);
+  const inputs = buildInputsFor(config.portal, config.operaciones);
+  const runs: ApifyRunSummary[] = [];
+  for (const input of inputs) {
+    logger.info({ portal: config.portal, actorId, input }, "Lanzando scraper Apify");
+    const run = await runActor(actorId, input);
+    runs.push(run);
+  }
+  return runs;
 }

@@ -19,9 +19,9 @@ interface Props {
 }
 
 const PORTALES = [
-  { value: "MILANUNCIOS", label: "Milanuncios", desc: "Suele exponer teléfono del vendedor" },
-  { value: "IDEALISTA", label: "Idealista", desc: "Teléfono oculto; volumen alto" },
-  { value: "FOTOCASA", label: "Fotocasa", desc: "Teléfono oculto; fuente complementaria" },
+  { value: "IDEALISTA", label: "Idealista", desc: "Free · volumen alto · teléfono oculto", warn: "" },
+  { value: "FOTOCASA", label: "Fotocasa", desc: "Free · fuente complementaria", warn: "" },
+  { value: "MILANUNCIOS", label: "Milanuncios", desc: "Expone teléfono del vendedor", warn: "Requiere alquiler Apify (~$30/mes)" },
 ];
 
 const STATUS_LABELS: Record<string, { cls: string; label: string }> = {
@@ -37,7 +37,7 @@ const STATUS_LABELS: Record<string, { cls: string; label: string }> = {
 
 export function ScraperModal({ open, onClose, onFinished }: Props) {
   const { toast } = useToast();
-  const [seleccionados, setSeleccionados] = useState<string[]>(["MILANUNCIOS"]);
+  const [seleccionados, setSeleccionados] = useState<string[]>(["IDEALISTA"]);
   const [runs, setRuns] = useState<(Run & { result?: Record<string, unknown>; error?: string })[]>([]);
   const [launching, setLaunching] = useState(false);
   const [errores, setErrores] = useState<{ portal: string; error: string }[]>([]);
@@ -110,6 +110,8 @@ export function ScraperModal({ open, onClose, onFinished }: Props) {
       setErrores(data.errores ?? []);
       if ((data.runs ?? []).length > 0) {
         toast(`${data.runs.length} scraper(s) lanzados. Se procesarán automáticamente al finalizar.`, "success");
+      } else if ((data.errores ?? []).length > 0) {
+        toast(`No se pudo lanzar ningún scraper. Revisa los errores.`, "error");
       }
     } finally {
       setLaunching(false);
@@ -152,9 +154,10 @@ export function ScraperModal({ open, onClose, onFinished }: Props) {
                         active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
                       }`}
                     >
-                      <div className="text-left">
+                      <div className="text-left flex-1">
                         <p className="text-sm font-semibold">{p.label}</p>
                         <p className="text-xs text-secondary">{p.desc}</p>
+                        {p.warn && <p className="text-[10px] text-amber-700 mt-0.5">⚠ {p.warn}</p>}
                       </div>
                       {active && <Check className="h-4 w-4 text-primary" />}
                     </button>
@@ -168,6 +171,20 @@ export function ScraperModal({ open, onClose, onFinished }: Props) {
                   Cada ejecución puede tardar <strong>5–15 minutos</strong> y consumir créditos Apify. Los resultados se procesan automáticamente al terminar.
                 </div>
               </div>
+
+              {errores.length > 0 && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-red-700 flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5" /> No se pudo lanzar el scraper:
+                  </p>
+                  {errores.map((e, i) => (
+                    <div key={i} className="text-xs text-red-700">
+                      <strong>{e.portal}:</strong>
+                      <pre className="mt-1 whitespace-pre-wrap font-mono text-[10px] bg-white/60 p-2 rounded max-h-32 overflow-y-auto">{e.error}</pre>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-3 border-t border-border">
                 <Button variant="ghost" onClick={onClose} disabled={launching}>Cancelar</Button>
