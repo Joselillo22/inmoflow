@@ -77,32 +77,60 @@ const SEARCH_URLS: Record<string, { VENTA: string; ALQUILER: string }> = {
 
 // Algunos actors toman un solo startUrl (fotocasa) — en ese caso hay que lanzar
 // un run por cada operación. Esta función devuelve N inputs (N=1 o N=operaciones.length).
-export function buildInputsFor(portal: "IDEALISTA" | "FOTOCASA" | "MILANUNCIOS", operaciones: ("VENTA" | "ALQUILER")[], maxItems = 100): object[] {
+export function buildInputsFor(
+  portal: "IDEALISTA" | "FOTOCASA" | "MILANUNCIOS",
+  operaciones: ("VENTA" | "ALQUILER")[],
+  maxItems = 100,
+  location = "alicante"
+): object[] {
   const actorId = actorIdFor(portal) ?? "";
   const urls = operaciones.map((op) => SEARCH_URLS[portal][op]);
 
-  // dz_omar/idealista-scraper-api → Property_urls array + desiredResults
-  if (actorId.includes("idealista-scraper-api") || actorId.includes("dz_omar")) {
-    return [{
-      Property_urls: urls.map((url) => ({ url })),
-      desiredResults: maxItems,
-    }];
+  // igolaizola/idealista-scraper — operation="sale"|"rent", location, propertyType, country
+  // Lanza 1 run por operación (sale/rent no se pueden mezclar)
+  if (actorId.includes("igolaizola") && actorId.includes("idealista")) {
+    return operaciones.map((op) => ({
+      location,
+      country: "es",
+      operation: op === "VENTA" ? "sale" : "rent",
+      propertyType: "homes",
+      maxItems,
+      publishedBy: "particular",
+    }));
   }
 
-  // azzouzana/fotocasa-...-ppr → startUrl (single) + maxItems → un run por URL
-  if (actorId.includes("fotocasa") && actorId.includes("ppr")) {
-    return urls.map((url) => ({ startUrl: url, maxItems }));
+  // igolaizola/fotocasa-scraper — operation="buy"|"rent", location, propertyType
+  if (actorId.includes("igolaizola") && actorId.includes("fotocasa")) {
+    return operaciones.map((op) => ({
+      location,
+      operation: op === "VENTA" ? "buy" : "rent",
+      propertyType: "home",
+      maxItems,
+    }));
   }
 
-  // memo23/idealista-scraper — formato similar al generic
-  if (actorId.includes("memo23")) {
+  // zen-studio/milanuncios-scraper (paid) → usa startUrls o search query
+  if (actorId.includes("zen-studio") && actorId.includes("milanuncios")) {
     return [{
       startUrls: urls.map((url) => ({ url })),
       maxItems,
     }];
   }
 
-  // Formato genérico por defecto (startUrls array + maxItems)
+  // dz_omar/idealista-scraper-api (free) → Property_urls array + desiredResults
+  if (actorId.includes("dz_omar") || actorId.includes("idealista-scraper-api")) {
+    return [{
+      Property_urls: urls.map((url) => ({ url })),
+      desiredResults: maxItems,
+    }];
+  }
+
+  // azzouzana/fotocasa-...-ppr (free) → startUrl (single) + maxItems → un run por URL
+  if (actorId.includes("fotocasa") && actorId.includes("ppr")) {
+    return urls.map((url) => ({ startUrl: url, maxItems }));
+  }
+
+  // Formato genérico por defecto
   return [{
     startUrls: urls.map((url) => ({ url })),
     maxItems,
