@@ -81,6 +81,30 @@ export default function AgendaPage() {
   const [formNotas, setFormNotas] = useState("");
   const [creating, setCreating] = useState(false);
 
+  async function toggleTarea(id: string) {
+    const res = await fetch(`/api/tareas/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completada: true }),
+    });
+    if (res.ok) {
+      toast("Tarea completada", "success");
+      fetchVisitas();
+    }
+  }
+
+  async function reabrirTarea(id: string) {
+    const res = await fetch(`/api/tareas/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completada: false }),
+    });
+    if (res.ok) {
+      toast("Tarea reabierta", "success");
+      fetchVisitas();
+    }
+  }
+
   const fetchVisitas = useCallback(() => {
     setLoading(true);
     Promise.all([
@@ -358,13 +382,28 @@ export default function AgendaPage() {
             {tareasPendDia.map((t) => {
               const prioColor = t.prioridad === 2 ? "border-l-red-500" : t.prioridad === 1 ? "border-l-amber-500" : "border-l-slate-300";
               return (
-                <div key={t.id} className={`bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 border-l-4 ${prioColor} shadow-sm p-3.5`}>
-                  <p className="text-sm font-medium text-foreground">{t.descripcion}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-semibold text-secondary uppercase">{t.tipo.replace(/_/g, " ")}</span>
-                    {t.prioridad === 2 && <span className="text-[10px] font-bold text-red-500">URGENTE</span>}
-                    {t.prioridad === 1 && <span className="text-[10px] font-bold text-amber-500">ALTA</span>}
+                <div key={t.id} className={`bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 border-l-4 ${prioColor} shadow-sm p-3.5 flex items-start gap-3`}>
+                  <button
+                    onClick={() => toggleTarea(t.id)}
+                    className="w-8 h-8 rounded-lg border-2 border-border flex items-center justify-center shrink-0 cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-colors"
+                    aria-label="Marcar completada"
+                  >
+                    <Circle className="h-4 w-4 text-transparent" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{t.descripcion}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-semibold text-secondary uppercase">{t.tipo.replace(/_/g, " ")}</span>
+                      {t.prioridad === 2 && <span className="text-[10px] font-bold text-red-500">URGENTE</span>}
+                      {t.prioridad === 1 && <span className="text-[10px] font-bold text-amber-500">ALTA</span>}
+                    </div>
                   </div>
+                  <button
+                    onClick={() => toggleTarea(t.id)}
+                    className="flex items-center gap-1 px-3 h-8 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors shrink-0"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Hecha
+                  </button>
                 </div>
               );
             })}
@@ -379,9 +418,9 @@ export default function AgendaPage() {
           </p>
           <div className="space-y-2">
             {tareasCompDia.map((t) => (
-              <div key={t.id} className="bg-emerald-50/60 rounded-xl border border-emerald-200/60 p-3.5 opacity-80">
+              <div key={t.id} className="bg-emerald-50/60 rounded-xl border border-emerald-200/60 p-3.5">
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm text-foreground line-through decoration-emerald-400/50">{t.descripcion}</p>
                     <div className="flex items-center gap-2 mt-1">
@@ -393,6 +432,12 @@ export default function AgendaPage() {
                       )}
                     </div>
                   </div>
+                  <button
+                    onClick={() => reabrirTarea(t.id)}
+                    className="text-[10px] text-secondary hover:text-foreground cursor-pointer underline shrink-0"
+                  >
+                    Reabrir
+                  </button>
                 </div>
               </div>
             ))}
