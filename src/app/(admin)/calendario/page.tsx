@@ -100,11 +100,17 @@ export default function CalendarioPage() {
     if (tareasRes.ok) {
       const { data: tareas } = await tareasRes.json();
       for (const t of tareas ?? []) {
-        if (!t.fechaLimite || t.completada) continue;
+        const dateStr = t.completada ? (t.completadaAt ?? t.fechaLimite) : t.fechaLimite;
+        if (!dateStr) continue;
         const prioColors: Record<number, string> = { 2: "bg-red-500", 1: "bg-amber-500", 0: "bg-slate-400" };
         calEvents.push({
-          id: t.id, tipo: "tarea", titulo: t.descripcion, subtitulo: t.tipo,
-          fecha: t.fechaLimite, color: prioColors[t.prioridad] ?? "bg-slate-400",
+          id: t.id,
+          tipo: "tarea",
+          titulo: t.descripcion,
+          subtitulo: t.completada ? `✓ ${t.tipo}` : t.tipo,
+          fecha: dateStr,
+          color: t.completada ? "bg-emerald-500" : (prioColors[t.prioridad] ?? "bg-slate-400"),
+          resultado: t.completada ? "COMPLETADA" : undefined,
         });
       }
     }

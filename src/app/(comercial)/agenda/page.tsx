@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import {
   Phone, MessageCircle, CalendarDays, MapPin, Home,
   ChevronLeft, ChevronRight, Plus, X, Clock, Loader2,
+  CheckSquare, CheckCircle2, Circle,
 } from "lucide-react";
 import { formatTime, formatCurrency } from "@/lib/utils/formatters";
 import { RESULTADO_VISITA_LABELS } from "@/lib/utils/constants";
@@ -19,6 +20,16 @@ interface Visita {
   resultado: string;
   lead: { nombre: string; apellidos: string | null; telefono: string | null };
   inmueble: { titulo: string; direccion: string; precio: number; referencia: string };
+}
+
+interface Tarea {
+  id: string;
+  tipo: string;
+  descripcion: string;
+  prioridad: number;
+  completada: boolean;
+  fechaLimite: string | null;
+  completadaAt: string | null;
 }
 
 interface LeadOption { id: string; nombre: string; apellidos: string | null }
@@ -51,6 +62,7 @@ function getCalendarDays(year: number, month: number) {
 
 export default function AgendaPage() {
   const [visitas, setVisitas] = useState<Visita[]>([]);
+  const [tareas, setTareas] = useState<Tarea[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
@@ -71,29 +83,47 @@ export default function AgendaPage() {
 
   const fetchVisitas = useCallback(() => {
     setLoading(true);
-    fetch("/api/visitas?limit=200&sortBy=fecha&sortOrder=asc")
-      .then((r) => r.json())
-      .then((res) => setVisitas(res.data ?? []))
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetch("/api/visitas?limit=200&sortBy=fecha&sortOrder=asc").then((r) => r.json()),
+      fetch("/api/tareas?limit=500").then((r) => r.json()).catch(() => ({ data: [] })),
+    ]).then(([visRes, tarRes]) => {
+      setVisitas(visRes.data ?? []);
+      setTareas(tarRes.data ?? []);
+    }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { fetchVisitas(); }, [fetchVisitas]);
 
-  // Días con visitas en el mes actual del calendario
-  const visitasDates = new Set(
-    visitas.map((v) => {
-      const d = new Date(v.fecha);
-      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    })
-  );
+  // Días con eventos (visitas o tareas)
+  const eventosDates = new Set<string>();
+  for (const v of visitas) {
+    const d = new Date(v.fecha);
+    eventosDates.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+  }
+  for (const t of tareas) {
+    const dateStr = t.completadaAt ?? t.fechaLimite;
+    if (dateStr) {
+      const d = new Date(dateStr);
+      eventosDates.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+    }
+  }
 
   const hasVisita = (day: number) =>
-    visitasDates.has(`${calYear}-${calMonth}-${day}`);
+    eventosDates.has(`${calYear}-${calMonth}-${day}`);
 
   // Visitas del día seleccionado
   const visitasDia = visitas
     .filter((v) => sameDay(new Date(v.fecha), selectedDate))
     .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+
+  // Tareas del día seleccionado: completadas ese día O pendientes con fechaLimite ese día
+  const tareasDia = tareas.filter((t) => {
+    if (t.completadaAt && sameDay(new Date(t.completadaAt), selectedDate)) return true;
+    if (!t.completada && t.fechaLimite && sameDay(new Date(t.fechaLimite), selectedDate)) return true;
+    return false;
+  });
+  const tareasCompDia = tareasDia.filter((t) => t.completada);
+  const tareasPendDia = tareasDia.filter((t) => !t.completada);
 
   const calDays = getCalendarDays(calYear, calMonth);
   const today = new Date();
@@ -260,7 +290,7 @@ export default function AgendaPage() {
           {selectedLabel}
         </span>
         <div className="flex-1 h-px bg-border/50" />
-        <span className="text-xs text-secondary">{visitasDia.length} visita{visitasDia.length !== 1 ? "s" : ""}</span>
+        <span className="text-xs text-secondary">{visitasDia.length} visita{visitasDia.length !== 1 ? "s" : ""}{tareasDia.length > 0 && ` · ${tareasDia.length} tarea${tareasDia.length !== 1 ? "s" : ""}`}</span>
       </div>
 
       {visitasDia.length > 0 ? (
@@ -308,13 +338,65 @@ export default function AgendaPage() {
             </div>
           ))}
         </div>
-      ) : (
+      ) : tareasDia.length === 0 ? (
         <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-sm py-8 text-center">
           <CalendarDays className="h-8 w-8 text-secondary/30 mx-auto mb-2" />
           <p className="text-sm text-secondary">Sin visitas este día</p>
           <button onClick={openNewVisita} className="text-sm text-primary font-semibold mt-2 cursor-pointer hover:underline">
             + Programar una visita
           </button>
+        </div>
+      ) : null}
+
+      {/* Tareas del día */}
+      {tareasPendDia.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Circle className="h-3 w-3" /> Tareas pendientes ({tareasPendDia.length})
+          </p>
+          <div className="space-y-2">
+            {tareasPendDia.map((t) => {
+              const prioColor = t.prioridad === 2 ? "border-l-red-500" : t.prioridad === 1 ? "border-l-amber-500" : "border-l-slate-300";
+              return (
+                <div key={t.id} className={`bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 border-l-4 ${prioColor} shadow-sm p-3.5`}>
+                  <p className="text-sm font-medium text-foreground">{t.descripcion}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-semibold text-secondary uppercase">{t.tipo.replace(/_/g, " ")}</span>
+                    {t.prioridad === 2 && <span className="text-[10px] font-bold text-red-500">URGENTE</span>}
+                    {t.prioridad === 1 && <span className="text-[10px] font-bold text-amber-500">ALTA</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {tareasCompDia.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <CheckCircle2 className="h-3 w-3" /> Completadas ({tareasCompDia.length})
+          </p>
+          <div className="space-y-2">
+            {tareasCompDia.map((t) => (
+              <div key={t.id} className="bg-emerald-50/60 rounded-xl border border-emerald-200/60 p-3.5 opacity-80">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground line-through decoration-emerald-400/50">{t.descripcion}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-semibold text-secondary uppercase">{t.tipo.replace(/_/g, " ")}</span>
+                      {t.completadaAt && (
+                        <span className="text-[10px] text-secondary">
+                          {new Date(t.completadaAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
