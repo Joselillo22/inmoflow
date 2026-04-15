@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PhaseSelector } from "@/components/admin/leads/phase-selector";
 import { ScoreBar } from "@/components/admin/leads/score-bar";
 import { LeadDetailSlideOver } from "@/components/admin/leads/lead-detail-slideover";
+import { NuevoLeadModal } from "@/components/admin/leads/nuevo-lead-modal";
 import { useToast } from "@/components/ui/toast";
 import {
   Search, Plus, Users, ChevronLeft, ChevronRight, X,
@@ -37,6 +38,7 @@ export default function LeadsPage() {
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [showNuevo, setShowNuevo] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -147,7 +149,7 @@ export default function LeadsPage() {
           <h1 className="text-lg font-semibold text-foreground">{t("leads.title")}</h1>
           <Badge variant="info" size="md">{total}</Badge>
         </div>
-        <Button size="sm" className="gap-1.5">
+        <Button size="sm" className="gap-1.5" onClick={() => setShowNuevo(true)}>
           <Plus className="h-3.5 w-3.5" /> {t("leads.new")}
         </Button>
       </div>
@@ -405,6 +407,7 @@ export default function LeadsPage() {
       </div>
 
       {/* SlideOver */}
+      <NuevoLeadModal open={showNuevo} onClose={() => setShowNuevo(false)} onCreated={(id) => { setSelectedLeadId(id); fetchLeads(); }} />
       <LeadDetailSlideOver
         leadId={selectedLeadId}
         onClose={() => setSelectedLeadId(null)}
