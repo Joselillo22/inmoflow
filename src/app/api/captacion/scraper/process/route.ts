@@ -124,7 +124,8 @@ async function _POST(req: NextRequest) {
         }
       }
 
-      const operacion = body.operacion
+      const operacion = norm.operacionDetectada
+        ?? body.operacion
         ?? detectarOperacionDesdeUrl(norm.urlAnuncio)
         ?? (norm.tipoInmueble?.toLowerCase().includes("alquiler") ? "ALQUILER" : "VENTA");
 

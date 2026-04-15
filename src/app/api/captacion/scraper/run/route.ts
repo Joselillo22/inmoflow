@@ -7,16 +7,17 @@ import logger from "@/lib/logger";
 
 async function _POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    const rol = (session.user as unknown as { rol: string }).rol;
-
-    // Permitir llamada interna vía API key (para cron)
+    // Permitir llamada interna vía API key (para cron) sin auth de sesión
     const apiKey = req.headers.get("x-api-key");
     const isInternal = apiKey && apiKey === process.env.PORTALES_API_KEY;
 
-    if (!isInternal && !["ADMIN", "COORDINADORA"].includes(rol)) {
-      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    if (!isInternal) {
+      const session = await auth();
+      if (!session?.user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      const rol = (session.user as unknown as { rol: string }).rol;
+      if (!["ADMIN", "COORDINADORA"].includes(rol)) {
+        return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+      }
     }
 
     if (!process.env.APIFY_API_TOKEN) {

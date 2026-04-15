@@ -161,6 +161,9 @@ export interface NormalizedItem {
   emailPropietario?: string;
   extras?: Record<string, boolean>;
   esParticular?: boolean;
+  operacionDetectada?: "VENTA" | "ALQUILER";
+  latitud?: number;
+  longitud?: number;
 }
 
 function pickString(obj: Record<string, unknown>, ...keys: string[]): string | undefined {
@@ -200,43 +203,107 @@ function pickArray(obj: Record<string, unknown>, ...keys: string[]): string[] | 
   return undefined;
 }
 
+function getNested(obj: Record<string, unknown>, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === "object" && key in (acc as object)) return (acc as Record<string, unknown>)[key];
+    return undefined;
+  }, obj);
+}
+
+function pickStringDeep(obj: Record<string, unknown>, ...paths: string[]): string | undefined {
+  for (const p of paths) {
+    const v = getNested(obj, p);
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+function pickNumberDeep(obj: Record<string, unknown>, ...paths: string[]): number | undefined {
+  for (const p of paths) {
+    const v = getNested(obj, p);
+    if (typeof v === "number" && !isNaN(v)) return v;
+    if (typeof v === "string") {
+      const n = parseFloat(v.replace(/[^0-9.]/g, ""));
+      if (!isNaN(n)) return n;
+    }
+  }
+  return undefined;
+}
+function pickBoolDeep(obj: Record<string, unknown>, ...paths: string[]): boolean | undefined {
+  for (const p of paths) {
+    const v = getNested(obj, p);
+    if (typeof v === "boolean") return v;
+  }
+  return undefined;
+}
+
 export function normalizeRawItem(raw: Record<string, unknown>): NormalizedItem {
+  // Fotos: handle both array of strings and array of {url, tag} objects
+  let fotos: string[] | undefined;
+  const mmImages = getNested(raw, "multimedia.images");
+  if (Array.isArray(mmImages)) {
+    fotos = mmImages.map((im) => (typeof im === "string" ? im : (im as { url?: string })?.url)).filter((x): x is string => typeof x === "string");
+  } else {
+    fotos = pickArray(raw, "images", "photos", "pictures", "imageUrls");
+  }
+  if ((!fotos || fotos.length === 0)) {
+    const thumb = pickString(raw, "thumbnail", "image");
+    if (thumb) fotos = [thumb];
+  }
+
   const item: NormalizedItem = {
-    urlAnuncio: pickString(raw, "url", "detailUrl", "link", "adUrl", "originalUrl"),
-    titulo: pickString(raw, "title", "name", "heading", "adTitle"),
-    descripcionOriginal: pickString(raw, "description", "desc", "text", "details"),
-    precio: pickNumber(raw, "price", "priceNumber", "priceValue", "amount", "salePrice"),
-    direccionAproximada: pickString(raw, "address", "location", "street", "fullAddress"),
-    localidad: pickString(raw, "city", "locality", "town", "municipality"),
-    codigoPostal: pickString(raw, "postalCode", "zipCode", "cp", "zip"),
-    tipoInmueble: pickString(raw, "propertyType", "type", "category", "subcategory"),
-    habitaciones: pickNumber(raw, "rooms", "bedrooms", "habitaciones", "numRooms"),
-    banos: pickNumber(raw, "bathrooms", "banos", "baths", "numBathrooms"),
-    metrosConstruidos: pickNumber(raw, "size", "surface", "area", "sqm", "m2", "sizeBuilt"),
-    planta: pickNumber(raw, "floor", "planta", "floorNumber"),
-    fotos: pickArray(raw, "images", "photos", "pictures", "imageUrls") ?? (pickString(raw, "image", "thumbnail") ? [pickString(raw, "image", "thumbnail")!] : undefined),
-    nombrePropietario: pickString(raw, "contactName", "sellerName", "ownerName", "advertiserName", "publisherName"),
-    telefonoPropietario: pickString(raw, "phone", "contactPhone", "ownerPhone", "telephone", "sellerPhone"),
-    emailPropietario: pickString(raw, "email", "contactEmail", "ownerEmail"),
+    urlAnuncio: pickStringDeep(raw, "url", "detailUrl", "link", "adUrl", "originalUrl"),
+    titulo: pickStringDeep(raw, "title", "name", "heading", "adTitle", "suggestedTexts.title"),
+    descripcionOriginal: pickStringDeep(raw, "description", "desc", "text", "details"),
+    precio: pickNumberDeep(raw, "price", "priceNumber", "priceValue", "amount", "salePrice", "priceInfo.price.amount"),
+    direccionAproximada: pickStringDeep(raw, "address", "location", "street", "fullAddress"),
+    localidad: pickStringDeep(raw, "municipality", "city", "locality", "town"),
+    codigoPostal: pickStringDeep(raw, "postalCode", "zipCode", "cp", "zip"),
+    tipoInmueble: pickStringDeep(raw, "propertyType", "detailedType.typology", "type", "category", "subcategory"),
+    habitaciones: pickNumberDeep(raw, "rooms", "bedrooms", "habitaciones", "numRooms"),
+    banos: pickNumberDeep(raw, "bathrooms", "banos", "baths", "numBathrooms"),
+    metrosConstruidos: pickNumberDeep(raw, "size", "surface", "area", "sqm", "m2", "sizeBuilt"),
+    planta: pickNumberDeep(raw, "floor", "planta", "floorNumber"),
+    fotos,
+    nombrePropietario: pickStringDeep(raw, "contactInfo.contactName", "contactInfo.commercialName", "contactName", "sellerName", "ownerName", "advertiserName", "publisherName"),
+    telefonoPropietario: pickStringDeep(raw, "contactInfo.phone1.phoneNumberForMobileDialing", "contactInfo.phone1.formattedPhone", "phone", "contactPhone", "ownerPhone", "telephone", "sellerPhone"),
+    emailPropietario: pickStringDeep(raw, "contactInfo.email", "email", "contactEmail", "ownerEmail"),
   };
 
   const extras: Record<string, boolean> = {};
-  const garaje = pickBool(raw, "garage", "parking", "garaje");
+  const garaje = pickBoolDeep(raw, "parkingSpace.hasParkingSpace", "features.hasParking", "hasParkingSpace", "garage", "parking", "garaje");
   if (garaje !== undefined) extras.garaje = garaje;
-  const piscina = pickBool(raw, "pool", "swimmingPool", "piscina");
+  const piscina = pickBoolDeep(raw, "features.hasSwimmingPool", "hasSwimmingPool", "pool", "piscina");
   if (piscina !== undefined) extras.piscina = piscina;
-  const terraza = pickBool(raw, "terrace", "terraza", "balcony");
+  const terraza = pickBoolDeep(raw, "features.hasTerrace", "hasTerrace", "terrace", "terraza", "balcony");
   if (terraza !== undefined) extras.terraza = terraza;
-  const ascensor = pickBool(raw, "lift", "elevator", "ascensor");
+  const ascensor = pickBoolDeep(raw, "hasLift", "features.hasLift", "lift", "elevator", "ascensor");
   if (ascensor !== undefined) extras.ascensor = ascensor;
+  const aire = pickBoolDeep(raw, "features.hasAirConditioning", "hasAirConditioning");
+  if (aire !== undefined) extras.aireAcondicionado = aire;
   if (Object.keys(extras).length > 0) item.extras = extras;
 
-  // Detectar si es particular (varía según actor)
-  const publisher = pickString(raw, "publisher", "publisherType", "advertiserType", "sellerType");
-  if (publisher) {
-    const lower = publisher.toLowerCase();
-    item.esParticular = lower.includes("particular") || lower.includes("owner") || lower.includes("private");
+  // Detectar si es particular
+  // igolaizola idealista: contactInfo.userType → "private" | "professional"
+  // fotocasa: publisher o userType
+  const userType = pickStringDeep(raw, "contactInfo.userType", "userType", "publisher", "publisherType", "advertiserType", "sellerType");
+  if (userType) {
+    const lower = userType.toLowerCase();
+    item.esParticular = lower === "private" || lower.includes("particular") || lower.includes("owner");
   }
+
+  // Detectar operación desde el raw (igolaizola: "sale"|"rent"; fotocasa puede variar)
+  const op = pickStringDeep(raw, "operation");
+  if (op) {
+    const lower = op.toLowerCase();
+    if (lower === "sale" || lower === "buy" || lower === "venta") item.operacionDetectada = "VENTA";
+    else if (lower === "rent" || lower === "alquiler") item.operacionDetectada = "ALQUILER";
+  }
+
+  // Lat/lon
+  const lat = pickNumberDeep(raw, "latitude", "lat", "latitud");
+  const lng = pickNumberDeep(raw, "longitude", "lng", "lon", "longitud");
+  if (typeof lat === "number") item.latitud = lat;
+  if (typeof lng === "number") item.longitud = lng;
 
   return item;
 }
