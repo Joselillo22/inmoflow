@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import {
-  ChevronLeft, ChevronRight, Plus, X, Eye, CheckSquare, Search, UserCircle,
-} from "lucide-react";
+  ChevronLeft, ChevronRight, Plus, X, Eye, CheckSquare, Search, UserCircle, Filter } from "lucide-react";
 import { formatTime } from "@/lib/utils/formatters";
 import { RESULTADO_VISITA_LABELS } from "@/lib/utils/constants";
 
@@ -21,6 +20,8 @@ interface CalendarEvent {
   hora?: string;
   color: string;
   resultado?: string;
+  completada?: boolean;
+  prioridad?: number;
 }
 
 interface LeadOption { id: string; nombre: string; apellidos: string | null; telefono: string | null; comercialId: string | null }
@@ -41,6 +42,7 @@ export default function CalendarioPage() {
   const [crearDate, setCrearDate] = useState<Date>(new Date());
   const { toast } = useToast();
   const [filterComercialId, setFilterComercialId] = useState("");
+  const [filterEstado, setFilterEstado] = useState("");
   const [comercialesFilter, setComercialesFilter] = useState<ComercialOption[]>([]);
 
   // Create event form state
@@ -93,6 +95,7 @@ export default function CalendarioPage() {
           titulo: `${v.lead?.nombre ?? "Lead"} ${v.lead?.apellidos ?? ""}`.trim(),
           subtitulo: v.inmueble?.titulo ?? "", fecha: v.fecha, hora: formatTime(v.fecha),
           color: resultadoColors[v.resultado] ?? "bg-blue-500", resultado: v.resultado,
+          completada: ["REALIZADA_INTERESADO", "REALIZADA_NO_INTERESADO"].includes(v.resultado),
         });
       }
     }
@@ -111,6 +114,8 @@ export default function CalendarioPage() {
           fecha: dateStr,
           color: t.completada ? "bg-emerald-500" : (prioColors[t.prioridad] ?? "bg-slate-400"),
           resultado: t.completada ? "COMPLETADA" : undefined,
+          completada: t.completada,
+          prioridad: t.prioridad,
         });
       }
     }
@@ -133,8 +138,27 @@ export default function CalendarioPage() {
     setCurrentDate(d);
   }
 
+  function pasaFiltroEstado(ev: CalendarEvent): boolean {
+    if (!filterEstado) return true;
+    if (filterEstado === "visitas") return ev.tipo === "visita";
+    if (filterEstado === "tareas") return ev.tipo === "tarea";
+    if (filterEstado === "completadas") {
+      return ev.completada === true || ["REALIZADA_INTERESADO", "REALIZADA_NO_INTERESADO"].includes(ev.resultado ?? "");
+    }
+    if (filterEstado === "pendientes") {
+      return !ev.completada && !["CANCELADA", "NO_SHOW"].includes(ev.resultado ?? "");
+    }
+    if (filterEstado === "urgentes") {
+      return ev.prioridad === 2 && !ev.completada;
+    }
+    if (filterEstado === "canceladas") {
+      return ["CANCELADA", "NO_SHOW"].includes(ev.resultado ?? "");
+    }
+    return true;
+  }
+
   function getEventsForDay(date: Date) {
-    return events.filter((e) => {
+    return events.filter(pasaFiltroEstado).filter((e) => {
       const ed = new Date(e.fecha);
       return ed.getDate() === date.getDate() && ed.getMonth() === date.getMonth() && ed.getFullYear() === date.getFullYear();
     });
@@ -402,6 +426,22 @@ export default function CalendarioPage() {
               {comercialesFilter.map((c) => (
                 <option key={c.id} value={c.id}>{c.usuario.nombre} {c.usuario.apellidos}</option>
               ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 border border-border rounded-xl px-2.5 py-1.5 bg-white">
+            <Filter className="h-4 w-4 text-secondary" />
+            <select
+              value={filterEstado}
+              onChange={(e) => setFilterEstado(e.target.value)}
+              className="text-sm bg-transparent border-none outline-none cursor-pointer text-foreground pr-1"
+            >
+              <option value="">Todos los estados</option>
+              <option value="pendientes">Pendientes</option>
+              <option value="urgentes">Urgentes</option>
+              <option value="completadas">Completadas</option>
+              <option value="canceladas">Canceladas</option>
+              <option value="visitas">Solo visitas</option>
+              <option value="tareas">Solo tareas</option>
             </select>
           </div>
           <div className="flex border border-border rounded-xl overflow-hidden">
