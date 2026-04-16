@@ -247,12 +247,27 @@ function pickBoolDeep(obj: Record<string, unknown>, ...paths: string[]): boolean
   return undefined;
 }
 
+// Fotocasa propertySubtype codes → tipo InmoFlow
+const FOTOCASA_SUBTIPOS: Record<string, string> = {
+  "1": "piso", "2": "atico", "3": "duplex", "4": "estudio", "5": "loft",
+  "6": "apartamento", "7": "chalet", "8": "adosado", "9": "adosado",
+  "10": "casa", "11": "casa", "13": "casa", "52": "atico",
+};
+
+function detectarEsFotocasa(raw: Record<string, unknown>): boolean {
+  // Fotocasa items tienen propertyId + location.level5Name + transaction objects
+  return !!(raw.propertyId && raw.transaction && typeof (raw as { transaction?: { type?: string } }).transaction?.type === "string");
+}
+
 export function normalizeRawItem(raw: Record<string, unknown>): NormalizedItem {
-  // Fotos: handle both array of strings and array of {url, tag} objects
+  // Fotos: handle multiple shapes
   let fotos: string[] | undefined;
   const mmImages = getNested(raw, "multimedia.images");
   if (Array.isArray(mmImages)) {
     fotos = mmImages.map((im) => (typeof im === "string" ? im : (im as { url?: string })?.url)).filter((x): x is string => typeof x === "string");
+  } else if (Array.isArray(raw.multimedia)) {
+    // Fotocasa: multimedia es array de {url} o strings directos
+    fotos = (raw.multimedia as unknown[]).map((im) => (typeof im === "string" ? im : (im as { url?: string; src?: string })?.url ?? (im as { url?: string; src?: string })?.src)).filter((x): x is string => typeof x === "string");
   } else {
     fotos = pickArray(raw, "images", "photos", "pictures", "imageUrls");
   }
@@ -261,24 +276,49 @@ export function normalizeRawItem(raw: Record<string, unknown>): NormalizedItem {
     if (thumb) fotos = [thumb];
   }
 
+  const esFotocasa = detectarEsFotocasa(raw);
+
+  // Construir dirección para Fotocasa: street + number
+  let direccionFotocasa: string | undefined;
+  if (esFotocasa) {
+    const street = pickString(raw, "street");
+    const num = pickString(raw, "number");
+    if (street) direccionFotocasa = num ? `${street}, ${num}` : street;
+  }
+
+  // Resolver tipoInmueble para Fotocasa desde propertySubtype numérico
+  let tipoFotocasa: string | undefined;
+  if (esFotocasa) {
+    const subtype = pickString(raw, "propertySubtype");
+    if (subtype && FOTOCASA_SUBTIPOS[subtype]) tipoFotocasa = FOTOCASA_SUBTIPOS[subtype];
+    else tipoFotocasa = "piso"; // fallback
+  }
+
   const item: NormalizedItem = {
     urlAnuncio: pickStringDeep(raw, "url", "detailUrl", "link", "adUrl", "originalUrl"),
     titulo: pickStringDeep(raw, "title", "name", "heading", "adTitle", "suggestedTexts.title"),
     descripcionOriginal: pickStringDeep(raw, "description", "desc", "text", "details"),
-    precio: pickNumberDeep(raw, "price", "priceNumber", "priceValue", "amount", "salePrice", "priceInfo.price.amount"),
-    direccionAproximada: pickStringDeep(raw, "address", "location", "street", "fullAddress"),
-    localidad: pickStringDeep(raw, "municipality", "city", "locality", "town"),
+    precio: pickNumberDeep(raw, "transaction.price", "price", "priceNumber", "priceValue", "amount", "salePrice", "priceInfo.price.amount"),
+    direccionAproximada: direccionFotocasa ?? pickStringDeep(raw, "address", "location", "street", "fullAddress"),
+    localidad: pickStringDeep(raw, "location.level5Name", "location.level7Name", "municipality", "city", "locality", "town"),
     codigoPostal: pickStringDeep(raw, "postalCode", "zipCode", "cp", "zip"),
-    tipoInmueble: pickStringDeep(raw, "propertyType", "detailedType.typology", "type", "category", "subcategory"),
+    tipoInmueble: tipoFotocasa ?? pickStringDeep(raw, "propertyType", "detailedType.typology", "type", "category", "subcategory"),
     habitaciones: pickNumberDeep(raw, "rooms", "bedrooms", "habitaciones", "numRooms"),
-    banos: pickNumberDeep(raw, "bathrooms", "banos", "baths", "numBathrooms"),
-    metrosConstruidos: pickNumberDeep(raw, "size", "surface", "area", "sqm", "m2", "sizeBuilt"),
+    banos: pickNumberDeep(raw, "baths", "bathrooms", "banos", "numBathrooms"),
+    metrosConstruidos: pickNumberDeep(raw, "surface", "size", "area", "sqm", "m2", "sizeBuilt"),
     planta: pickNumberDeep(raw, "floor", "planta", "floorNumber"),
     fotos,
-    nombrePropietario: pickStringDeep(raw, "contactInfo.contactName", "contactInfo.commercialName", "contactName", "sellerName", "ownerName", "advertiserName", "publisherName"),
-    telefonoPropietario: pickStringDeep(raw, "contactInfo.phone1.phoneNumberForMobileDialing", "contactInfo.phone1.formattedPhone", "phone", "contactPhone", "ownerPhone", "telephone", "sellerPhone"),
+    nombrePropietario: pickStringDeep(raw, "agency.name", "contactInfo.contactName", "contactInfo.commercialName", "contactName", "sellerName", "ownerName", "advertiserName", "publisherName"),
+    telefonoPropietario: pickStringDeep(raw, "phone", "contactInfo.phone1.phoneNumberForMobileDialing", "contactInfo.phone1.formattedPhone", "contactPhone", "ownerPhone", "telephone", "sellerPhone"),
     emailPropietario: pickStringDeep(raw, "contactInfo.email", "email", "contactEmail", "ownerEmail"),
   };
+
+  // Autogenerar titulo si no viene
+  if (!item.titulo && item.tipoInmueble && (item.direccionAproximada || item.localidad)) {
+    const tipo = item.tipoInmueble.charAt(0).toUpperCase() + item.tipoInmueble.slice(1);
+    const zona = item.direccionAproximada ?? item.localidad;
+    item.titulo = `${tipo} en ${zona}`;
+  }
 
   const extras: Record<string, boolean> = {};
   const garaje = pickBoolDeep(raw, "parkingSpace.hasParkingSpace", "features.hasParking", "hasParkingSpace", "garage", "parking", "garaje");
@@ -295,15 +335,17 @@ export function normalizeRawItem(raw: Record<string, unknown>): NormalizedItem {
 
   // Detectar si es particular
   // igolaizola idealista: contactInfo.userType → "private" | "professional"
-  // fotocasa: publisher o userType
-  const userType = pickStringDeep(raw, "contactInfo.userType", "userType", "publisher", "publisherType", "advertiserType", "sellerType");
+  // fotocasa: agency.type → "private" | "professional"
+  const userType = pickStringDeep(raw, "contactInfo.userType", "agency.type", "userType", "publisher", "publisherType", "advertiserType", "sellerType");
   if (userType) {
     const lower = userType.toLowerCase();
     item.esParticular = lower === "private" || lower.includes("particular") || lower.includes("owner");
   }
 
-  // Detectar operación desde el raw (igolaizola: "sale"|"rent"; fotocasa puede variar)
-  const op = pickStringDeep(raw, "operation");
+  // Detectar operación desde el raw
+  // igolaizola idealista: "operation" = "sale"|"rent"
+  // fotocasa: "transaction.type" = "SALE"|"RENT" (mayúsculas)
+  const op = pickStringDeep(raw, "operation", "transaction.type");
   if (op) {
     const lower = op.toLowerCase();
     if (lower === "sale" || lower === "buy" || lower === "venta") item.operacionDetectada = "VENTA";
@@ -311,8 +353,8 @@ export function normalizeRawItem(raw: Record<string, unknown>): NormalizedItem {
   }
 
   // Lat/lon
-  const lat = pickNumberDeep(raw, "latitude", "lat", "latitud");
-  const lng = pickNumberDeep(raw, "longitude", "lng", "lon", "longitud");
+  const lat = pickNumberDeep(raw, "latitude", "location.latitude", "lat", "latitud");
+  const lng = pickNumberDeep(raw, "longitude", "location.longitude", "lng", "lon", "longitud");
   if (typeof lat === "number") item.latitud = lat;
   if (typeof lng === "number") item.longitud = lng;
 
